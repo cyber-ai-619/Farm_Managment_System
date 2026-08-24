@@ -1,4 +1,6 @@
 .env
+!.env.example
+*.local
 .DS_Store
 Thumbs.db
 
@@ -17,5 +19,5 @@ database/*.sqlite
 
 # Editor and IDE folders
 .idea/
-.vscode/
-
+.vscode/*
+!.vscode/extensions.json

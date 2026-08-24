@@ -1,0 +1,417 @@
+/* ================================
+   FFMS - GLOBAL STYLES
+   Theme: Farm / Harvest
+   Palette:
+     --soil-900:  #2B2118  (deep tilled soil, darkest text)
+     --barnwood:  #3B2E22  (barn wood, sidebar)
+     --pine:      #2F5233  (dark pine green, navbar)
+     --grass:     #4E8B3F  (fresh grass, primary accent)
+     --grass-lt:  #6FAE58  (young grass, hover)
+     --wheat:     #E3A72B  (ripe wheat, highlight/focus)
+     --wheat-lt:  #F4CE6A  (pale wheat, subtle accents)
+     --barn-red:  #B4462F  (barn red, warnings/secondary accent)
+     --cream:     #FBF4E4  (parchment/hay background)
+     --cream-2:   #F3E9D2  (deeper cream for panels)
+     --sage:      #6E7A5E  (muted sage, secondary text)
+================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Nunito+Sans:wght@400;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Nunito Sans', Arial, Helvetica, sans-serif;
+  background: #FBF4E4;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(43, 33, 24, 0.05) 1px, transparent 0);
+  background-size: 22px 22px;
+  color: #2B2118;
+}
+
+a {
+  text-decoration: none;
+}
+
+h1, h2, h3 {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+/* ================================
+   DASHBOARD LAYOUT
+================================ */
+
+.dashboard-layout {
+  min-height: 100vh;
+  background: #FBF4E4;
+}
+
+.dashboard-body {
+  display: flex;
+  min-height: calc(100vh - 70px);
+}
+
+.main-content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+.main-content h1 {
+  margin-bottom: 6px;
+  color: #2F5233;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.main-content h1::after {
+  content: "";
+  display: block;
+  width: 64px;
+  height: 4px;
+  margin-top: 10px;
+  background: repeating-linear-gradient(
+    90deg,
+    #E3A72B 0, #E3A72B 8px,
+    transparent 8px, transparent 12px
+  );
+  border-radius: 2px;
+}
+
+.main-content > div > p {
+  max-width: 760px;
+  margin-top: 16px;
+  color: #6E7A5E;
+  line-height: 1.6;
+}
+
+.dashboard-page {
+  max-width: 1100px;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 30px;
+}
+
+.dashboard-card {
+  position: relative;
+  padding: 22px;
+  border: 1px dashed rgba(43, 33, 24, 0.18);
+  border-left: 5px solid #4E8B3F;
+  border-radius: 10px;
+  background: #FFFDF7;
+  box-shadow: 0 6px 16px rgba(43, 33, 24, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(43, 33, 24, 0.13);
+}
+
+.dashboard-card::after {
+  content: "🌾";
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 16px;
+  opacity: 0.55;
+}
+
+.dashboard-card h3 {
+  margin-bottom: 12px;
+  color: #6E7A5E;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.dashboard-card p {
+  color: #2F5233;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 34px;
+  font-weight: 700;
+}
+
+/* ================================
+   NAVBAR
+================================ */
+
+.navbar {
+  height: 70px;
+  background: linear-gradient(135deg, #2F5233 0%, #1F3B24 100%);
+  color: #FBF4E4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+  border-bottom: 3px solid #E3A72B;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-left h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 26px;
+  letter-spacing: 0.4px;
+}
+
+.navbar-left span {
+  font-size: 14px;
+  opacity: 0.8;
+  color: #F4CE6A;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.navbar-right button {
+  border: none;
+  background: #E3A72B;
+  color: #2B2118;
+  padding: 9px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 800;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.navbar-right button:hover {
+  background: #F4CE6A;
+  transform: translateY(-1px);
+}
+
+/* ================================
+   SIDEBAR
+================================ */
+
+.sidebar {
+  width: 240px;
+  min-height: calc(100vh - 70px);
+  background: #3B2E22;
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.08) 0px,
+    rgba(0, 0, 0, 0.08) 2px,
+    transparent 2px,
+    transparent 26px
+  );
+  color: #F3E9D2;
+  padding: 25px 15px;
+}
+
+.sidebar-title {
+  text-align: center;
+  margin-bottom: 25px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 23px;
+  color: #F4CE6A;
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sidebar-menu a {
+  color: #E4D9C3;
+  padding: 12px 15px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-menu a:hover {
+  background: rgba(227, 167, 43, 0.16);
+  color: #F4CE6A;
+  border-left: 3px solid #E3A72B;
+}
+
+.sidebar-menu a.active {
+  background: #4E8B3F;
+  color: #FFFDF7;
+  border-left: 3px solid #F4CE6A;
+}
+
+/* ================================
+   BUTTONS
+================================ */
+
+button {
+  font-family: inherit;
+}
+
+/* =============================
+   AUTHENTICATION PAGES
+============================= */
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 30px 20px;
+  background: #FBF4E4;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(43, 33, 24, 0.05) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+.auth-card {
+  width: min(100%, 430px);
+  padding: 40px;
+  background: #FFFDF7;
+  border-top: 6px solid #4E8B3F;
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(43, 33, 24, 0.16);
+}
+
+.auth-brand {
+  margin-bottom: 14px;
+  color: #4E8B3F;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+.auth-card h1 {
+  margin-bottom: 10px;
+  color: #2F5233;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.auth-card > p {
+  color: #6E7A5E;
+}
+
+.auth-card form {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.form-field {
+  display: grid;
+  gap: 7px;
+}
+
+.form-field label {
+  color: #2B2118;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.form-field input {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid #D8C9A8;
+  border-radius: 6px;
+  background: #FBF4E4;
+  color: #2B2118;
+  font: inherit;
+}
+
+.form-field input:focus {
+  outline: 2px solid #E3A72B;
+  outline-offset: 1px;
+  border-color: #E3A72B;
+}
+
+.auth-button {
+  padding: 12px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #2F5233;
+  color: #FBF4E4;
+  cursor: pointer;
+  font-weight: 800;
+  transition: background 0.18s ease;
+}
+
+.auth-button:hover {
+  background: #4E8B3F;
+}
+
+.auth-link {
+  margin-top: 24px;
+  font-size: 14px;
+  text-align: center;
+  color: #6E7A5E;
+}
+
+.auth-link a {
+  color: #B4462F;
+  font-weight: 800;
+}
+
+.auth-link a:hover {
+  color: #E3A72B;
+}
+
+/* ================================
+   RESPONSIVE DESIGN
+================================ */
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 190px;
+  }
+
+  .navbar-left span {
+    display: none;
+  }
+
+  .main-content {
+    padding: 20px;
+  }
+
+  .dashboard-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .sidebar {
+    width: 170px;
+  }
+
+  .sidebar-menu a {
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  .navbar {
+    padding: 0 15px;
+  }
+
+  .navbar-right span {
+    display: none;
+  }
+
+  .auth-card {
+    padding: 30px 24px;
+  }
+
+  .dashboard-cards {
+    grid-template-columns: 1fr;
+  }
+}
