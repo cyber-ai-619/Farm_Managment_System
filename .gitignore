@@ -1,0 +1,21 @@
+.env
+.DS_Store
+Thumbs.db
+
+# Dependency and build output
+node_modules/
+vendor/
+dist/
+build/
+coverage/
+
+# Logs and runtime files
+*.log
+backend/storage/logs/
+frontend/.vite/
+database/*.sqlite
+
+# Editor and IDE folders
+.idea/
+.vscode/
+
