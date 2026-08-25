@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import Logo from "../components/Logo";
 
 function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -15,15 +17,26 @@ function Login() {
       return;
     }
 
-    // Temporary login
-    // We will connect this to the backend later.
+    const users = JSON.parse(localStorage.getItem("ffms_users") || "{}");
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = users[normalizedEmail];
+
+    if (!user || user.password !== password) {
+      alert("Invalid email or password.");
+      return;
+    }
+
+    localStorage.setItem(
+      "ffms_session",
+      JSON.stringify({ name: user.name, email: normalizedEmail }),
+    );
     navigate("/dashboard");
   };
 
   return (
     <main className="auth-page">
       <section className="auth-card">
-        <div className="auth-brand">FFMS</div>
+        <Logo className="auth-logo" />
         <h1>FFMS Login</h1>
 
         <p>Login to your Farm Management System.</p>
@@ -42,13 +55,23 @@ function Login() {
 
           <div className="form-field">
             <label htmlFor="login-password">Password</label>
-            <input
-              id="login-password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="password-field">
+              <input
+                id="login-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                className="password-toggle"
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
 
           <button className="auth-button" type="submit">

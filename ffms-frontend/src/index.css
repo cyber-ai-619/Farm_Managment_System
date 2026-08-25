@@ -25,10 +25,13 @@
 
 body {
   font-family: 'Nunito Sans', Arial, Helvetica, sans-serif;
-  background: #FBF4E4;
+  background-color: #FBF4E4;
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(43, 33, 24, 0.05) 1px, transparent 0);
-  background-size: 22px 22px;
+    linear-gradient(rgba(251, 244, 228, 0.42), rgba(251, 244, 228, 0.42)),
+    url('./assets/images/background.jpeg');
+  background-position: center;
+  background-attachment: fixed;
+  background-size: cover;
   color: #2B2118;
 }
 
@@ -46,7 +49,7 @@ h1, h2, h3 {
 
 .dashboard-layout {
   min-height: 100vh;
-  background: #FBF4E4;
+  background: rgba(251, 244, 228, 0.42);
 }
 
 .dashboard-body {
@@ -268,10 +271,7 @@ button {
   display: grid;
   place-items: center;
   padding: 30px 20px;
-  background: #FBF4E4;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(43, 33, 24, 0.05) 1px, transparent 0);
-  background-size: 22px 22px;
+  background: rgba(251, 244, 228, 0.42);
 }
 
 .auth-card {
@@ -334,6 +334,33 @@ button {
   outline: 2px solid #E3A72B;
   outline-offset: 1px;
   border-color: #E3A72B;
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 64px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  padding: 4px 5px;
+  border: 0;
+  background: transparent;
+  color: #2F5233;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  transform: translateY(-50%);
+}
+
+.password-toggle:hover {
+  color: #B4462F;
 }
 
 .auth-button {
@@ -414,4 +441,29 @@ button {
   .dashboard-cards {
     grid-template-columns: 1fr;
   }
+}
+
+.ffms-logo {
+  display: block;
+  object-fit: contain;
+}
+
+.navbar-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+}
+
+.sidebar-logo {
+  width: 92px;
+  height: 58px;
+  margin: 0 auto 25px;
+  border-radius: 6px;
+}
+
+.auth-logo {
+  width: 120px;
+  height: 80px;
+  margin: 0 auto 18px;
+  border-radius: 8px;
 }

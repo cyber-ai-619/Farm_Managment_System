@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
+import Logo from "./Logo";
 
 function Sidebar() {
   return (
     <aside className="sidebar">
-      <h2 className="sidebar-title">FFMS</h2>
+      <Logo className="sidebar-logo" />
 
       <nav className="sidebar-menu">
         <Link to="/dashboard">Dashboard</Link>
