@@ -1,11 +1,8 @@
 import { Link } from "react-router-dom";
-import Logo from "./Logo";
 
 function Sidebar() {
   return (
     <aside className="sidebar">
-      <Logo className="sidebar-logo" />
-
       <nav className="sidebar-menu">
         <Link to="/dashboard">Dashboard</Link>
         <Link to="/farm">Farms</Link>

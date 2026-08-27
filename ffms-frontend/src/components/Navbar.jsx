@@ -15,12 +15,16 @@ function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar-left">
-        <Logo className="navbar-logo" />
-        <span>Farm Management System</span>
+        <div className="navbar-brand">
+          <Logo className="navbar-logo" />
+          <span>Farm Management System</span>
+        </div>
       </div>
 
       <div className="navbar-right">
-        <span>Welcome {session?.name || "User"}</span>
+        <span className="welcome-text">
+          <span className="welcome-label">Welcome</span> <span className="user-name">{session?.name || "User"}</span>
+        </span>
         <button type="button" onClick={handleLogout}>Logout</button>
       </div>
     </header>

@@ -37,6 +37,7 @@ function Login() {
     <main className="auth-page">
       <section className="auth-card">
         <Logo className="auth-logo" />
+        <p className="auth-brand">AgriHud</p>
         <h1>FFMS Login</h1>
 
         <p>Login to your Farm Management System.</p>

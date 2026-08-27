@@ -39,6 +39,7 @@ function Register() {
     <main className="auth-page">
       <section className="auth-card">
         <Logo className="auth-logo" />
+        <p className="auth-brand">AgriHud</p>
         <h1>Create FFMS Account</h1>
 
         <p>Register for the Farm Management System.</p>

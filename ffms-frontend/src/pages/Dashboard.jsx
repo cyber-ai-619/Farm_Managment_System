@@ -1,6 +1,7 @@
 function Dashboard() {
   return (
     <div className="dashboard-page">
+      <p className="dashboard-brand">AgriHud</p>
       <h1>Farm Management Dashboard</h1>
 
       <p>
