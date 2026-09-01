@@ -1,32 +1,7 @@
-# Planned Database Areas
+# Database Schema Documentation Moved
 
-Use this file as the shared source of truth for the database design.
+The database schema design has been moved to:
 
-## Core entities
+👉 [`docs/backend/schema.md`](../docs/backend/schema.md)
 
-- users
-- roles
-- farms
-- fields
-- crops
-- livestock
-- inventory_items
-- equipment
-- labour_records
-- pest_reports
-- weather_observations
-- harvests
-- sales_orders
-- invoices
-- payments
-- suppliers
-- purchases
-- storage_batches
-- alerts
-- audit_logs
-
-## Notes
-
-- Keep schema changes versioned once migrations are added.
-- Use this file to agree on naming before code is split across the team.
-
+Please refer to `docs/backend/schema.md` for active implemented table schemas and the planned schema roadmap.

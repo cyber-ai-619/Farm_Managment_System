@@ -8,7 +8,7 @@
 ## Collaboration rules
 
 - Keep the API contract stable while frontend work is in progress.
-- Store schema decisions in `database/schema.md` before coding around them.
+- Store schema decisions in `docs/backend/schema.md` before coding around them.
 - Document disagreements in the docs folder instead of hiding them in code comments.
 
 ## Pull request checklist
