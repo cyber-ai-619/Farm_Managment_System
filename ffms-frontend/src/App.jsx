@@ -1,26 +1,11 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import DashboardLayout from "./layouts/DashboardLayout";
+import ModulePage from "./components/ModulePage";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import Farm from "./pages/Farm";
-import Crops from "./pages/Crops";
-import Livestock from "./pages/Livestock";
-import Irrigation from "./pages/Irrigation";
-import Inventory from "./pages/Inventory";
-import Tools from "./pages/Tools";
-import Labour from "./pages/Labour";
-import PestDisease from "./pages/PestDisease";
-import Weather from "./pages/Weather";
-import Harvest from "./pages/Harvest";
-import Sales from "./pages/Sales";
-import Money from "./pages/Money";
-import Suppliers from "./pages/Suppliers";
-import Storage from "./pages/Storage";
-import Reports from "./pages/Reports";
-import Alerts from "./pages/Alerts";
 
 function App() {
   return (
@@ -31,22 +16,22 @@ function App() {
 
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/farm" element={<Farm />} />
-          <Route path="/crops" element={<Crops />} />
-          <Route path="/livestock" element={<Livestock />} />
-          <Route path="/irrigation" element={<Irrigation />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/tools" element={<Tools />} />
-          <Route path="/labour" element={<Labour />} />
-          <Route path="/pest-disease" element={<PestDisease />} />
-          <Route path="/weather" element={<Weather />} />
-          <Route path="/harvest" element={<Harvest />} />
-          <Route path="/sales" element={<Sales />} />
-          <Route path="/money" element={<Money />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/storage" element={<Storage />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/farm" element={<ModulePage module="farms" />} />
+          <Route path="/crops" element={<ModulePage module="crops" />} />
+          <Route path="/livestock" element={<ModulePage module="livestock" />} />
+          <Route path="/irrigation" element={<ModulePage module="irrigation" />} />
+          <Route path="/inventory" element={<ModulePage module="inventory" />} />
+          <Route path="/tools" element={<ModulePage module="tools" />} />
+          <Route path="/labour" element={<ModulePage module="labour" />} />
+          <Route path="/pest-disease" element={<ModulePage module="pestDisease" />} />
+          <Route path="/weather" element={<ModulePage module="weather" />} />
+          <Route path="/harvest" element={<ModulePage module="harvest" />} />
+          <Route path="/sales" element={<ModulePage module="sales" />} />
+          <Route path="/money" element={<ModulePage module="money" />} />
+          <Route path="/suppliers" element={<ModulePage module="suppliers" />} />
+          <Route path="/storage" element={<ModulePage module="storage" />} />
+          <Route path="/reports" element={<ModulePage module="reports" />} />
+          <Route path="/alerts" element={<ModulePage module="alerts" />} />
         </Route>
       </Routes>
     </BrowserRouter>

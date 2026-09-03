@@ -8,12 +8,14 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [status, setStatus] = useState(null);
 
   const handleLogin = (e) => {
     e.preventDefault();
+    setStatus(null);
 
     if (!email || !password) {
-      alert("Please enter your email and password.");
+      setStatus({ type: "error", message: "Please enter your email and password." });
       return;
     }
 
@@ -22,15 +24,24 @@ function Login() {
     const user = users[normalizedEmail];
 
     if (!user || user.password !== password) {
-      alert("Invalid email or password.");
+      setStatus({ type: "error", message: "Invalid email or password." });
       return;
     }
 
     localStorage.setItem(
       "ffms_session",
-      JSON.stringify({ name: user.name, email: normalizedEmail }),
+      JSON.stringify({
+        name: user.name,
+        email: normalizedEmail,
+        location: user.location,
+        farmerType: user.farmerType,
+        phone: user.phone,
+        physicalAddress: user.physicalAddress,
+        photo: user.photo,
+      }),
     );
-    navigate("/dashboard");
+    setStatus({ type: "success", message: "Login successful. Opening your dashboard..." });
+    setTimeout(() => navigate("/dashboard"), 700);
   };
 
   return (
@@ -42,6 +53,12 @@ function Login() {
 
         <p>Login to your Farm Management System.</p>
 
+        {status && (
+          <p className={`form-message ${status.type}`} role="alert">
+            {status.message}
+          </p>
+        )}
+
         <form onSubmit={handleLogin}>
           <div className="form-field">
             <label htmlFor="login-email">Email</label>
@@ -51,6 +68,7 @@ function Login() {
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
 
@@ -63,6 +81,7 @@ function Login() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
               <button
                 className="password-toggle"

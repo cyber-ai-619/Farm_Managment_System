@@ -1242,7 +1242,7 @@ button { font-family: inherit; }
 .welcome-text {
   font-family: 'Great Vibes', 'Brush Script MT', cursive;
   font-style: italic;
-  font-size: 15px;
+  font-size: 20px;
   font-weight: 400;
   letter-spacing: 0.8px;
   color: var(--color-gold-bright);
@@ -1253,9 +1253,298 @@ button { font-family: inherit; }
   font-style: italic;
 }
 
+.form-message {
+  margin: 18px 0 0;
+  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.form-message.error {
+  border-color: rgba(161, 67, 48, 0.28);
+  background: rgba(161, 67, 48, 0.1);
+  color: #8c3526;
+}
+
+.form-message.success {
+  border-color: rgba(30, 112, 70, 0.28);
+  background: rgba(30, 112, 70, 0.1);
+  color: #1e7046;
+}
+
 .user-name {
   font-family: 'Great Vibes', 'Brush Script MT', cursive;
   font-style: italic;
+}
+
+.profile-panel {
+  margin-top: 32px;
+  padding: 26px;
+  background: var(--color-white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  border-top: 4px solid var(--foil);
+}
+
+.profile-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.section-kicker {
+  margin: 0 0 6px;
+  color: var(--color-farm-green);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.profile-panel h2 {
+  margin: 0;
+  color: var(--color-forest);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 26px;
+}
+
+.profile-edit-button,
+.profile-save-button,
+.profile-cancel-button,
+.photo-upload-button {
+  border: 0;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 16px;
+}
+
+.profile-edit-button,
+.profile-save-button {
+  background: var(--color-forest);
+  color: var(--color-white);
+}
+
+.profile-cancel-button {
+  background: var(--soft-white);
+  color: var(--color-forest);
+}
+
+.profile-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 26px;
+}
+
+.profile-photo {
+  display: grid;
+  flex: 0 0 92px;
+  width: 92px;
+  height: 92px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--color-farm-green);
+  color: var(--color-white);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.profile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-details-grid {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 28px;
+}
+
+.profile-details-grid div {
+  display: grid;
+  gap: 5px;
+}
+
+.profile-details-grid span {
+  color: var(--color-charcoal-60);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-details-grid strong {
+  color: var(--color-forest);
+  font-size: 15px;
+}
+
+.profile-form {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 22px 28px;
+}
+
+.profile-photo-area {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 12px;
+}
+
+.profile-photo-preview {
+  flex-basis: 104px;
+  width: 104px;
+  height: 104px;
+}
+
+.photo-upload-button {
+  background: var(--soft-white);
+  color: var(--color-forest);
+  text-align: center;
+}
+
+.photo-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.profile-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.profile-fields .form-field {
+  margin: 0;
+}
+
+.profile-fields input,
+.profile-fields select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-actions {
+  grid-column: 2;
+  display: flex;
+  gap: 10px;
+}
+
+.module-entry-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.4fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.module-form-section,
+.module-records-section {
+  min-width: 0;
+}
+
+.module-form-section h2,
+.module-records-section h2 {
+  margin-top: 0;
+  color: var(--color-forest);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 24px;
+}
+
+.module-form {
+  display: grid;
+  gap: 16px;
+}
+
+.module-form .form-field {
+  margin: 0;
+}
+
+.module-form input,
+.module-form select,
+.module-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.module-submit-button {
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--color-forest);
+  color: var(--color-white);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.module-message {
+  margin: 0 0 16px;
+  color: var(--color-farm-green);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.empty-module-state {
+  margin: 0;
+  color: var(--color-charcoal-60);
+  line-height: 1.5;
+}
+
+.module-record-card {
+  animation: riseIn 0.45s ease both;
+}
+
+.module-record-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.module-record-header h4 {
+  margin: 0;
+}
+
+.module-delete-button {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid rgba(161, 67, 48, 0.28);
+  border-radius: 5px;
+  background: transparent;
+  color: #8c3526;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.module-record-card p {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 10px 0 0;
+}
+
+.module-record-card p span {
+  color: var(--color-charcoal-60);
+  font-size: 12px;
+}
+
+.module-record-card p strong {
+  color: var(--color-forest);
+  font-size: 13px;
+  text-align: right;
 }
 
 /* ================================
@@ -1276,6 +1565,16 @@ button { font-family: inherit; }
   .navbar-right span { display: none; }
   .auth-card { padding: 30px 24px; }
   .dashboard-cards { grid-template-columns: 1fr; }
+  .profile-panel { padding: 20px; }
+  .profile-panel-header,
+  .profile-summary { flex-direction: column; }
+  .profile-details-grid,
+  .profile-fields { grid-template-columns: 1fr; width: 100%; }
+  .profile-form { grid-template-columns: 1fr; }
+  .profile-actions { grid-column: 1; }
+  .module-entry-layout { grid-template-columns: 1fr; }
+  .module-record-card p { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .module-record-card p strong { text-align: left; }
 }
 
 .ffms-logo { display: block; object-fit: contain; }
