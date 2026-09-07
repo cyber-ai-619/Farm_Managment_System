@@ -1017,6 +1017,93 @@ button { font-family: inherit; }
 .navbar-logo { width: 46px; height: 46px; border-radius: 50%; }
 .sidebar-logo { width: 92px; height: 58px; margin: 0 auto 25px; border-radius: 6px; }
 .auth-logo { width: 120px; height: 80px; margin: 0 auto 18px; border-radius: 8px; }
+
+/* The split layout owns the auth background; disable the legacy full-page overlay. */
+.auth-page::before,
+.auth-page::after {
+  display: none;
+}
+
+/* Keep the photo and card in the same dark, atmospheric visual field. */
+.auth-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  width: 100%;
+  overflow: hidden;
+  background: #10251a;
+}
+
+.auth-page::before,
+.auth-page::after {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  content: "";
+}
+
+.auth-page::before {
+  z-index: -2;
+  background:
+    linear-gradient(90deg, rgba(9, 28, 17, 0.82), rgba(15, 43, 26, 0.54) 48%, rgba(7, 21, 13, 0.76)),
+    url('./assets/images/background.jpeg') center / cover no-repeat;
+  filter: saturate(0.72) contrast(1.12);
+}
+
+.auth-page::after {
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 38% 70% at 76% 50%, rgba(3, 15, 8, 0.65), transparent 100%),
+    radial-gradient(ellipse at center, transparent 25%, rgba(3, 15, 8, 0.42) 100%),
+    linear-gradient(180deg, rgba(4, 17, 10, 0.28), transparent 34%, rgba(4, 17, 10, 0.5));
+}
+
+.auth-page > .auth-card {
+  z-index: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+.auth-page > .auth-card::before {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: none;
+}
+
+.auth-page > .auth-card::after { opacity: 0.12; filter: invert(1); }
+
+.auth-page > .auth-card .auth-brand,
+.auth-page > .auth-card h1,
+.auth-page > .auth-card > p,
+.auth-page > .auth-card .form-field label,
+.auth-page > .auth-card .auth-link {
+  color: rgba(255, 253, 245, 0.9);
+}
+
+.auth-page > .auth-card h1 { text-shadow: 0 2px 18px rgba(0, 0, 0, 0.25); }
+
+.auth-page > .auth-card .form-field input {
+  color: #fffdf5;
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(8, 28, 17, 0.34);
+}
+
+.auth-page > .auth-card .form-field input::placeholder { color: rgba(255, 253, 245, 0.58); }
+
+.auth-page > .auth-card .form-field input:focus {
+  border-color: rgba(201, 168, 105, 0.9);
+  background: rgba(8, 28, 17, 0.48);
+  box-shadow: 0 0 0 4px rgba(201, 168, 105, 0.18);
+}
+
+.auth-page > .auth-card .password-toggle { color: #e0c17e; }
+.auth-page > .auth-card .auth-link a { color: #e0c17e; }
   margin-bottom: 12px;
   color: var(--sage-700);
   font-size: 12px;
@@ -1581,3 +1668,235 @@ button { font-family: inherit; }
 .navbar-logo { width: 46px; height: 46px; border-radius: 50%; }
 .sidebar-logo { width: 92px; height: 58px; margin: 0 auto 25px; border-radius: 6px; }
 .auth-logo { width: 120px; height: 80px; margin: 0 auto 18px; border-radius: 8px; }
+
+/* ================================
+   AUTH SPLIT SCREEN
+================================ */
+
+.auth-page {
+  min-height: 100svh;
+  display: grid;
+  place-items: stretch;
+  padding: 0;
+  overflow: hidden;
+  background: var(--color-forest-dark);
+}
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: minmax(390px, 43%) 1fr;
+  min-height: 100svh;
+  width: 100%;
+}
+
+.auth-card {
+  align-self: center;
+  width: min(100% - 64px, 480px);
+  margin: 32px auto;
+  padding: 42px 42px 34px;
+  background: rgba(255, 250, 240, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 18px;
+  box-shadow: 0 22px 55px rgba(18, 46, 32, 0.2);
+  -webkit-backdrop-filter: blur(12px) saturate(115%);
+  backdrop-filter: blur(12px) saturate(115%);
+}
+
+.auth-card::before {
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-forest), var(--color-gold), var(--color-farm-green));
+  animation: none;
+}
+
+.auth-card::after { opacity: 0.12; }
+
+.auth-logo {
+  width: 72px;
+  height: 54px;
+  margin: 0 auto 16px;
+  border-radius: 8px;
+}
+
+.auth-brand {
+  margin-bottom: 10px;
+  color: var(--color-farm-green);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+}
+
+.auth-card h1 {
+  margin-bottom: 8px;
+  color: var(--color-charcoal);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(28px, 3vw, 36px);
+  line-height: 1.1;
+}
+
+.auth-card > p:not(.auth-brand):not(.auth-link):not(.form-message) {
+  color: rgba(43, 38, 34, 0.68);
+  font-size: 14px;
+}
+
+.auth-card form { gap: 16px; margin-top: 26px; }
+
+.form-field { gap: 6px; }
+
+.form-field label {
+  color: var(--color-charcoal);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(30, 70, 50, 0.18);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--color-charcoal);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.form-field textarea { resize: vertical; }
+
+.form-field input::placeholder,
+.form-field textarea::placeholder { color: rgba(43, 38, 34, 0.48); }
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: var(--color-farm-green);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(212, 165, 74, 0.18);
+}
+
+.password-toggle {
+  color: var(--color-farm-green);
+  font-size: 11px;
+}
+
+.password-toggle:hover { color: var(--color-wine); }
+
+.auth-button {
+  margin-top: 6px;
+  padding: 13px 18px;
+  border-radius: 9px;
+  background: var(--color-forest);
+  box-shadow: 0 10px 20px rgba(30, 70, 50, 0.2);
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-button:hover {
+  background: var(--color-farm-green);
+  box-shadow: 0 13px 25px rgba(30, 70, 50, 0.28);
+}
+
+.auth-link {
+  margin-top: 22px;
+  color: rgba(43, 38, 34, 0.64);
+  font-size: 13px;
+}
+
+.auth-link a { color: var(--color-farm-green); }
+.auth-link a:hover { color: var(--color-wine); }
+
+.auth-visual {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 100svh;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(11, 36, 21, 0.12), rgba(7, 25, 14, 0.72)),
+    url('./assets/images/background.jpeg') center / cover no-repeat;
+}
+
+.auth-visual::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(90deg, rgba(18, 46, 32, 0.24), transparent 42%),
+    linear-gradient(0deg, rgba(8, 27, 15, 0.42), transparent 55%);
+  pointer-events: none;
+}
+
+.auth-visual-content {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  padding: 64px clamp(40px, 7vw, 112px);
+  color: #fffdf5;
+}
+
+.auth-kicker,
+.auth-location {
+  display: block;
+  color: var(--color-gold-bright);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.auth-visual h2 {
+  max-width: 520px;
+  margin: 15px 0 14px;
+  color: #fffdf5;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(34px, 4.2vw, 62px);
+  font-weight: 600;
+  line-height: 1.04;
+}
+
+.auth-visual p {
+  max-width: 420px;
+  color: rgba(255, 253, 245, 0.82);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.auth-visual-line {
+  display: block;
+  width: 54px;
+  height: 2px;
+  margin: 26px 0 18px;
+  background: var(--color-gold);
+}
+
+.auth-location { color: rgba(255, 253, 245, 0.7); font-size: 10px; }
+
+@media (max-width: 800px) {
+  .auth-shell { grid-template-columns: 1fr; }
+
+  .auth-visual {
+    order: -1;
+    min-height: 280px;
+    align-items: flex-end;
+  }
+
+  .auth-visual-content { padding: 36px 28px; }
+  .auth-visual h2 { max-width: 440px; font-size: clamp(32px, 9vw, 48px); }
+  .auth-visual p { display: none; }
+  .auth-visual-line { margin: 18px 0 12px; }
+  .auth-card { margin: 0 auto 28px; }
+}
+
+@media (max-width: 480px) {
+  .auth-visual { min-height: 220px; }
+  .auth-visual-content { padding: 28px 22px; }
+  .auth-kicker { font-size: 10px; }
+  .auth-visual h2 { margin: 10px 0 0; font-size: 32px; }
+  .auth-location { font-size: 9px; }
+  .auth-card { width: min(100% - 32px, 480px); padding: 34px 24px 28px; }
+}
+
+/* The split layout owns the auth background; disable the legacy full-page overlay. */
+.auth-page::before,
+.auth-page::after {
+  display: none;
+}
