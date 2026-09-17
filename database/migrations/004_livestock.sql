@@ -9,7 +9,7 @@
 -- 1. breeds
 --    Master breed catalogue (e.g. "Angus", "Holstein Friesian")
 -- -----------------------------------------------------------------------------
-CREATE TABLE breeds (
+CREATE TABLE IF NOT EXISTS breeds (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(150) NOT NULL,
     species     ENUM('cattle','goat','sheep','pig','poultry','rabbit','other') NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE breeds (
 -- 2. animals
 --    Individual animal registry. Tied to a farm, optional breed.
 -- -----------------------------------------------------------------------------
-CREATE TABLE animals (
+CREATE TABLE IF NOT EXISTS animals (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id         INT UNSIGNED NOT NULL,
     breed_id        INT UNSIGNED NULL,
@@ -53,7 +53,7 @@ CREATE TABLE animals (
 -- 3. vaccinations
 --    Vaccination events per animal
 -- -----------------------------------------------------------------------------
-CREATE TABLE vaccinations (
+CREATE TABLE IF NOT EXISTS vaccinations (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     animal_id        INT UNSIGNED NOT NULL,
     administered_by  INT UNSIGNED NOT NULL COMMENT 'User who recorded / gave the vaccine',
@@ -75,7 +75,7 @@ CREATE TABLE vaccinations (
 -- 4. treatments
 --    Disease / health treatment events per animal
 -- -----------------------------------------------------------------------------
-CREATE TABLE treatments (
+CREATE TABLE IF NOT EXISTS treatments (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     animal_id        INT UNSIGNED NOT NULL,
     administered_by  INT UNSIGNED NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE treatments (
 -- 5. feed_records
 --    Daily / per-event feed consumption logs
 -- -----------------------------------------------------------------------------
-CREATE TABLE feed_records (
+CREATE TABLE IF NOT EXISTS feed_records (
     id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     animal_id    INT UNSIGNED NOT NULL,
     recorded_by  INT UNSIGNED NOT NULL,
@@ -119,7 +119,7 @@ CREATE TABLE feed_records (
 -- 6. breeding_records
 --    Mating events and pregnancy outcomes
 -- -----------------------------------------------------------------------------
-CREATE TABLE breeding_records (
+CREATE TABLE IF NOT EXISTS breeding_records (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     dam_id          INT UNSIGNED NOT NULL  COMMENT 'Female animal',
     sire_id         INT UNSIGNED NULL      COMMENT 'Male animal (null = artificial insemination)',
@@ -142,7 +142,7 @@ CREATE TABLE breeding_records (
 -- 7. livestock_production
 --    Periodic production records (milk, eggs, wool) per animal
 -- -----------------------------------------------------------------------------
-CREATE TABLE livestock_production (
+CREATE TABLE IF NOT EXISTS livestock_production (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     animal_id       INT UNSIGNED NOT NULL,
     recorded_by     INT UNSIGNED NOT NULL,

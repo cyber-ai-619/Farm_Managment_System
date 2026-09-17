@@ -8,7 +8,7 @@
 -- 1. crops
 --    Master crop catalogue (e.g. "Maize", "Tomato", "Wheat")
 -- -----------------------------------------------------------------------------
-CREATE TABLE crops (
+CREATE TABLE IF NOT EXISTS crops (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name             VARCHAR(150) NOT NULL,
     scientific_name  VARCHAR(150) NULL,
@@ -23,7 +23,7 @@ CREATE TABLE crops (
 -- 2. crop_varieties
 --    Specific varieties under each crop (e.g. "SC403" under "Maize")
 -- -----------------------------------------------------------------------------
-CREATE TABLE crop_varieties (
+CREATE TABLE IF NOT EXISTS crop_varieties (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     crop_id             INT UNSIGNED NOT NULL,
     variety_name        VARCHAR(150) NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE crop_varieties (
 -- 3. planting_schedules
 --    Records of actual planting events on a specific field/plot
 -- -----------------------------------------------------------------------------
-CREATE TABLE planting_schedules (
+CREATE TABLE IF NOT EXISTS planting_schedules (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     field_id             INT UNSIGNED NOT NULL,
     plot_id              INT UNSIGNED NULL COMMENT 'Null if entire field is planted',
@@ -73,7 +73,7 @@ CREATE TABLE planting_schedules (
 -- 4. fertilizer_records
 --    Fertilizer application events linked to a planting schedule
 -- -----------------------------------------------------------------------------
-CREATE TABLE fertilizer_records (
+CREATE TABLE IF NOT EXISTS fertilizer_records (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     planting_id     INT UNSIGNED NOT NULL,
     applied_by      INT UNSIGNED NOT NULL,
@@ -92,7 +92,7 @@ CREATE TABLE fertilizer_records (
 -- 5. spraying_schedules
 --    Chemical spray events (pesticides, herbicides, fungicides) per planting
 -- -----------------------------------------------------------------------------
-CREATE TABLE spraying_schedules (
+CREATE TABLE IF NOT EXISTS spraying_schedules (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     planting_id      INT UNSIGNED NOT NULL,
     applied_by       INT UNSIGNED NOT NULL,

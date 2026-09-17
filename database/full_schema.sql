@@ -1,82 +1,87 @@
-# 🗄️ Farm Management System — Database Schema
+-- =============================================================================
+-- Farm Management System (FFMS) — Complete Unified Database Schema
+--
+-- Single-file consolidation of all 16 database migrations (Phases 1 to 5).
+-- Total Tables: 59 tables
+--
+-- HOW TO USE ON YOUR LOCAL MACHINE:
+-- 1. In phpMyAdmin: Go to Import -> Choose this file -> Click Import.
+-- 2. Via CLI: mysql -u root -p < database/full_schema.sql
+-- =============================================================================
 
-This document serves as the shared single source of truth for the database design across all backend development phases.
+CREATE DATABASE IF NOT EXISTS `farm_management` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `farm_management`;
 
-> [!TIP]
-> **Consolidated Schema File**: [`database/full_schema.sql`](file:///c:/Users/timon/Documents/GitHub/Farm_Managment_System/database/full_schema.sql) contains the complete unified schema (59 tables) combining migrations 001 through 016 for single-step setup on local machines. Migration files remain available in [`database/migrations/`](file:///c:/Users/timon/Documents/GitHub/Farm_Managment_System/database/migrations/).
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 001_users_roles.sql
+-- ---------------------------------------------------------------------------
 
-## 🟢 Implemented Schemas (Phase 1)
+-- =============================================================
+-- Migration 001: Users & Roles
+-- Run this first — all other modules depend on users existing.
+-- =============================================================
 
-### 1. `roles`
-Defines system access roles.
-```sql
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name       VARCHAR(50) NOT NULL UNIQUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    name       VARCHAR(50) NOT NULL UNIQUE,        -- admin, farm_owner, farm_manager, agronomist, worker, accountant
+    created_at TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-**Default Roles Seeded**:
-- `1` : `admin`
-- `2` : `farm_owner`
-- `3` : `farm_manager`
-- `4` : `agronomist`
-- `5` : `worker` (Default)
-- `6` : `accountant`
 
----
+INSERT IGNORE INTO roles (name) VALUES
+    ('admin'),
+    ('farm_owner'),
+    ('farm_manager'),
+    ('agronomist'),
+    ('worker'),
+    ('accountant');
 
-### 2. `users`
-System user accounts.
-```sql
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name          VARCHAR(150) NOT NULL,
     email         VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role_id       INT UNSIGNED NOT NULL DEFAULT 5,
-    is_active     TINYINT(1) NOT NULL DEFAULT 1,
-    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    role_id       INT UNSIGNED NOT NULL DEFAULT 5, -- defaults to 'worker'
+    is_active     TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_users_role FOREIGN KEY (role_id) REFERENCES roles (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 3. `audit_logs`
-Security & operational audit log.
-```sql
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
     id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id    INT UNSIGNED NULL,
-    action     VARCHAR(100) NOT NULL,
-    table_name VARCHAR(100) NULL,
-    record_id  INT UNSIGNED NULL,
-    ip_address VARCHAR(45) NULL,
-    user_agent TEXT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    user_id    INT UNSIGNED     NULL,              -- NULL for unauthenticated actions
+    action     VARCHAR(100) NOT NULL,              -- e.g. 'user.login', 'farm.created'
+    table_name VARCHAR(100)     NULL,
+    record_id  INT UNSIGNED     NULL,
+    ip_address VARCHAR(45)      NULL,
+    user_agent TEXT             NULL,
+    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 002_farms_fields.sql
+-- ---------------------------------------------------------------------------
 
-## 🟢 Implemented Schemas (Phase 2)
+-- =============================================================================
+-- Migration 002: Farm & Field Management
+-- Tables: farms, fields, plots
+-- Depends on: users (Phase 1)
+-- =============================================================================
 
-### 4. `farms`
-Top-level farm entity. Owned by a user.
-```sql
-CREATE TABLE farms (
+-- -----------------------------------------------------------------------------
+-- 1. farms
+--    Top-level entity. A user (farm_owner / admin) owns one or many farms.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS farms (
     id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     owner_id      INT UNSIGNED NOT NULL,
     name          VARCHAR(150) NOT NULL,
-    location      VARCHAR(255) NULL,
+    location      VARCHAR(255) NULL COMMENT 'Human-readable address / region',
     latitude      DECIMAL(10, 7) NULL,
     longitude     DECIMAL(10, 7) NULL,
-    total_area_ha DECIMAL(10, 2) NULL,
+    total_area_ha DECIMAL(10, 2) NULL COMMENT 'Total farm area in hectares',
     description   TEXT NULL,
     is_active     TINYINT(1) NOT NULL DEFAULT 1,
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -84,24 +89,22 @@ CREATE TABLE farms (
     CONSTRAINT fk_farms_owner FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE CASCADE,
     INDEX idx_farms_owner (owner_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 5. `fields`
-A farm is divided into fields. Each field has soil metadata and GPS data.
-```sql
-CREATE TABLE fields (
+-- -----------------------------------------------------------------------------
+-- 2. fields
+--    A farm is divided into fields. Each field has soil metadata and GPS bounds.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS fields (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id         INT UNSIGNED NOT NULL,
     name            VARCHAR(150) NOT NULL,
-    area_ha         DECIMAL(10, 2) NULL,
+    area_ha         DECIMAL(10, 2) NULL COMMENT 'Field area in hectares',
     soil_type       ENUM('clay','sandy','loam','silt','peat','chalk','clay_loam','sandy_loam') NULL,
     soil_condition  ENUM('excellent','good','fair','poor') NULL DEFAULT 'good',
-    soil_ph         DECIMAL(4, 2) NULL,
-    latitude        DECIMAL(10, 7) NULL,
-    longitude       DECIMAL(10, 7) NULL,
-    gps_boundary    TEXT NULL,
+    soil_ph         DECIMAL(4, 2) NULL COMMENT 'Soil pH value e.g. 6.50',
+    latitude        DECIMAL(10, 7) NULL COMMENT 'Centre-point latitude',
+    longitude       DECIMAL(10, 7) NULL COMMENT 'Centre-point longitude',
+    gps_boundary    TEXT NULL COMMENT 'JSON polygon array of lat/lng pairs',
     description     TEXT NULL,
     is_active       TINYINT(1) NOT NULL DEFAULT 1,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -109,14 +112,12 @@ CREATE TABLE fields (
     CONSTRAINT fk_fields_farm FOREIGN KEY (farm_id) REFERENCES farms (id) ON DELETE CASCADE,
     INDEX idx_fields_farm (farm_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 6. `plots`
-Optional sub-division of a field (raised beds, blocks, zones).
-```sql
-CREATE TABLE plots (
+-- -----------------------------------------------------------------------------
+-- 3. plots
+--    Optional sub-division of a field (raised beds, blocks, zones).
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS plots (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     field_id    INT UNSIGNED NOT NULL,
     name        VARCHAR(100) NOT NULL,
@@ -128,14 +129,22 @@ CREATE TABLE plots (
     CONSTRAINT fk_plots_field FOREIGN KEY (field_id) REFERENCES fields (id) ON DELETE CASCADE,
     INDEX idx_plots_field (field_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 003_crops.sql
+-- ---------------------------------------------------------------------------
 
-### 7. `crops`
-Master crop catalogue (e.g. Maize, Tomato, Wheat).
-```sql
-CREATE TABLE crops (
+-- =============================================================================
+-- Migration 003: Crop Management
+-- Tables: crops, crop_varieties, planting_schedules, fertilizer_records, spraying_schedules
+-- Depends on: farms, fields, plots (Migration 002), users (Migration 001)
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 1. crops
+--    Master crop catalogue (e.g. "Maize", "Tomato", "Wheat")
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS crops (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name             VARCHAR(150) NOT NULL,
     scientific_name  VARCHAR(150) NULL,
@@ -145,96 +154,88 @@ CREATE TABLE crops (
     updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_crops_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 8. `crop_varieties`
-Specific varieties under each crop (e.g. SC403 under Maize).
-```sql
-CREATE TABLE crop_varieties (
+-- -----------------------------------------------------------------------------
+-- 2. crop_varieties
+--    Specific varieties under each crop (e.g. "SC403" under "Maize")
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS crop_varieties (
     id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     crop_id             INT UNSIGNED NOT NULL,
     variety_name        VARCHAR(150) NOT NULL,
-    days_to_maturity    SMALLINT UNSIGNED NULL,
-    planting_density    VARCHAR(100) NULL,
+    days_to_maturity    SMALLINT UNSIGNED NULL COMMENT 'Approximate days from planting to harvest',
+    planting_density    VARCHAR(100) NULL COMMENT 'e.g. 25000 plants/ha',
     row_spacing_cm      DECIMAL(6, 2) NULL,
     plant_spacing_cm    DECIMAL(6, 2) NULL,
-    expected_yield_t_ha DECIMAL(8, 2) NULL,
+    expected_yield_t_ha DECIMAL(8, 2) NULL COMMENT 'Expected tonnes per hectare',
     notes               TEXT NULL,
     created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_varieties_crop FOREIGN KEY (crop_id) REFERENCES crops (id) ON DELETE CASCADE,
     INDEX idx_varieties_crop (crop_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 9. `planting_schedules`
-Records of actual planting events on a specific field/plot.
-```sql
-CREATE TABLE planting_schedules (
-    id                    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    field_id              INT UNSIGNED NOT NULL,
-    plot_id               INT UNSIGNED NULL,
-    crop_id               INT UNSIGNED NOT NULL,
-    variety_id            INT UNSIGNED NULL,
-    planted_by            INT UNSIGNED NOT NULL,
-    planting_date         DATE NOT NULL,
+-- -----------------------------------------------------------------------------
+-- 3. planting_schedules
+--    Records of actual planting events on a specific field/plot
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS planting_schedules (
+    id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    field_id             INT UNSIGNED NOT NULL,
+    plot_id              INT UNSIGNED NULL COMMENT 'Null if entire field is planted',
+    crop_id              INT UNSIGNED NOT NULL,
+    variety_id           INT UNSIGNED NULL,
+    planted_by           INT UNSIGNED NOT NULL COMMENT 'User who recorded the planting',
+    planting_date        DATE NOT NULL,
     expected_harvest_date DATE NULL,
-    actual_harvest_date   DATE NULL,
-    area_planted_ha       DECIMAL(10, 2) NULL,
-    seed_quantity_kg      DECIMAL(10, 2) NULL,
-    status                ENUM('planned','planted','growing','harvested','failed') NOT NULL DEFAULT 'planned',
-    notes                 TEXT NULL,
-    created_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_planting_field   FOREIGN KEY (field_id)   REFERENCES fields (id)         ON DELETE CASCADE,
-    CONSTRAINT fk_planting_plot    FOREIGN KEY (plot_id)    REFERENCES plots (id)           ON DELETE SET NULL,
-    CONSTRAINT fk_planting_crop    FOREIGN KEY (crop_id)    REFERENCES crops (id)           ON DELETE CASCADE,
-    CONSTRAINT fk_planting_variety FOREIGN KEY (variety_id) REFERENCES crop_varieties (id)  ON DELETE SET NULL,
-    CONSTRAINT fk_planting_user    FOREIGN KEY (planted_by) REFERENCES users (id)           ON DELETE CASCADE,
-    INDEX idx_planting_field  (field_id),
-    INDEX idx_planting_crop   (crop_id),
+    actual_harvest_date  DATE NULL,
+    area_planted_ha      DECIMAL(10, 2) NULL,
+    seed_quantity_kg     DECIMAL(10, 2) NULL,
+    status               ENUM('planned','planted','growing','harvested','failed') NOT NULL DEFAULT 'planned',
+    notes                TEXT NULL,
+    created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_planting_field    FOREIGN KEY (field_id)   REFERENCES fields (id)          ON DELETE CASCADE,
+    CONSTRAINT fk_planting_plot     FOREIGN KEY (plot_id)    REFERENCES plots (id)           ON DELETE SET NULL,
+    CONSTRAINT fk_planting_crop     FOREIGN KEY (crop_id)    REFERENCES crops (id)           ON DELETE CASCADE,
+    CONSTRAINT fk_planting_variety  FOREIGN KEY (variety_id) REFERENCES crop_varieties (id)  ON DELETE SET NULL,
+    CONSTRAINT fk_planting_user     FOREIGN KEY (planted_by) REFERENCES users (id)           ON DELETE CASCADE,
+    INDEX idx_planting_field (field_id),
+    INDEX idx_planting_crop  (crop_id),
     INDEX idx_planting_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 10. `fertilizer_records`
-Fertilizer application events linked to a planting schedule.
-```sql
-CREATE TABLE fertilizer_records (
-    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    planting_id      INT UNSIGNED NOT NULL,
-    applied_by       INT UNSIGNED NOT NULL,
-    fertilizer_name  VARCHAR(150) NOT NULL,
-    fertilizer_type  ENUM('organic','inorganic','foliar','basal','top_dress','other') NOT NULL DEFAULT 'other',
-    quantity_kg      DECIMAL(10, 2) NOT NULL,
+-- -----------------------------------------------------------------------------
+-- 4. fertilizer_records
+--    Fertilizer application events linked to a planting schedule
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS fertilizer_records (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    planting_id     INT UNSIGNED NOT NULL,
+    applied_by      INT UNSIGNED NOT NULL,
+    fertilizer_name VARCHAR(150) NOT NULL,
+    fertilizer_type ENUM('organic','inorganic','foliar','basal','top_dress','other') NOT NULL DEFAULT 'other',
+    quantity_kg     DECIMAL(10, 2) NOT NULL,
     application_date DATE NOT NULL,
-    notes            TEXT NULL,
-    created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    notes           TEXT NULL,
+    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_fertilizer_planting FOREIGN KEY (planting_id) REFERENCES planting_schedules (id) ON DELETE CASCADE,
     CONSTRAINT fk_fertilizer_user     FOREIGN KEY (applied_by)  REFERENCES users (id)              ON DELETE CASCADE,
     INDEX idx_fertilizer_planting (planting_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 11. `spraying_schedules`
-Chemical spray events per planting (pesticides, herbicides, fungicides).
-```sql
-CREATE TABLE spraying_schedules (
+-- -----------------------------------------------------------------------------
+-- 5. spraying_schedules
+--    Chemical spray events (pesticides, herbicides, fungicides) per planting
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS spraying_schedules (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     planting_id      INT UNSIGNED NOT NULL,
     applied_by       INT UNSIGNED NOT NULL,
     chemical_name    VARCHAR(150) NOT NULL,
     chemical_type    ENUM('pesticide','herbicide','fungicide','insecticide','other') NOT NULL DEFAULT 'other',
     quantity_litres  DECIMAL(10, 2) NOT NULL,
-    dilution_ratio   VARCHAR(50) NULL,
+    dilution_ratio   VARCHAR(50) NULL COMMENT 'e.g. 1:20',
     spray_date       DATE NOT NULL,
     target_pest      VARCHAR(150) NULL,
     notes            TEXT NULL,
@@ -243,14 +244,23 @@ CREATE TABLE spraying_schedules (
     CONSTRAINT fk_spraying_user     FOREIGN KEY (applied_by)  REFERENCES users (id)              ON DELETE CASCADE,
     INDEX idx_spraying_planting (planting_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 004_livestock.sql
+-- ---------------------------------------------------------------------------
 
-### 12. `breeds`
-Master breed catalogue for livestock.
-```sql
-CREATE TABLE breeds (
+-- =============================================================================
+-- Migration 004: Livestock Management
+-- Tables: breeds, animals, vaccinations, treatments, feed_records,
+--         breeding_records, livestock_production
+-- Depends on: farms (Migration 002), users (Migration 001)
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 1. breeds
+--    Master breed catalogue (e.g. "Angus", "Holstein Friesian")
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS breeds (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name        VARCHAR(150) NOT NULL,
     species     ENUM('cattle','goat','sheep','pig','poultry','rabbit','other') NOT NULL,
@@ -258,28 +268,26 @@ CREATE TABLE breeds (
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_breed_species_name (species, name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 13. `animals`
-Individual animal registry tied to a farm.
-```sql
-CREATE TABLE animals (
+-- -----------------------------------------------------------------------------
+-- 2. animals
+--    Individual animal registry. Tied to a farm, optional breed.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS animals (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id         INT UNSIGNED NOT NULL,
     breed_id        INT UNSIGNED NULL,
-    tag_number      VARCHAR(50) NOT NULL,
-    name            VARCHAR(100) NULL,
+    tag_number      VARCHAR(50) NOT NULL COMMENT 'Ear tag / RFID / unique identifier',
+    name            VARCHAR(100) NULL COMMENT 'Optional name',
     species         ENUM('cattle','goat','sheep','pig','poultry','rabbit','other') NOT NULL,
     gender          ENUM('male','female','unknown') NOT NULL DEFAULT 'unknown',
     date_of_birth   DATE NULL,
     date_of_death   DATE NULL,
     cause_of_death  VARCHAR(255) NULL,
-    weight_kg       DECIMAL(8, 2) NULL,
+    weight_kg       DECIMAL(8, 2) NULL COMMENT 'Most recent recorded weight',
     purchase_price  DECIMAL(10, 2) NULL,
     purchase_date   DATE NULL,
-    source          VARCHAR(150) NULL,
+    source          VARCHAR(150) NULL COMMENT 'Where the animal came from',
     status          ENUM('active','sold','deceased','quarantine') NOT NULL DEFAULT 'active',
     notes           TEXT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -287,21 +295,19 @@ CREATE TABLE animals (
     CONSTRAINT fk_animals_farm  FOREIGN KEY (farm_id)  REFERENCES farms (id)  ON DELETE CASCADE,
     CONSTRAINT fk_animals_breed FOREIGN KEY (breed_id) REFERENCES breeds (id) ON DELETE SET NULL,
     UNIQUE KEY uq_animals_farm_tag (farm_id, tag_number),
-    INDEX idx_animals_farm    (farm_id),
-    INDEX idx_animals_status  (status),
+    INDEX idx_animals_farm   (farm_id),
+    INDEX idx_animals_status (status),
     INDEX idx_animals_species (species)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 14. `vaccinations`
-Vaccination events per animal.
-```sql
-CREATE TABLE vaccinations (
+-- -----------------------------------------------------------------------------
+-- 3. vaccinations
+--    Vaccination events per animal
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS vaccinations (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     animal_id        INT UNSIGNED NOT NULL,
-    administered_by  INT UNSIGNED NOT NULL,
+    administered_by  INT UNSIGNED NOT NULL COMMENT 'User who recorded / gave the vaccine',
     vaccine_name     VARCHAR(150) NOT NULL,
     disease_target   VARCHAR(150) NULL,
     dose_ml          DECIMAL(8, 2) NULL,
@@ -315,21 +321,19 @@ CREATE TABLE vaccinations (
     INDEX idx_vaccinations_animal (animal_id),
     INDEX idx_vaccinations_date   (vaccination_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 15. `treatments`
-Disease / health treatment events per animal.
-```sql
-CREATE TABLE treatments (
+-- -----------------------------------------------------------------------------
+-- 4. treatments
+--    Disease / health treatment events per animal
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS treatments (
     id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     animal_id        INT UNSIGNED NOT NULL,
     administered_by  INT UNSIGNED NOT NULL,
     diagnosis        VARCHAR(255) NOT NULL,
     treatment_name   VARCHAR(150) NOT NULL,
     medication       VARCHAR(150) NULL,
-    dose             VARCHAR(100) NULL,
+    dose             VARCHAR(100) NULL COMMENT 'e.g. 10ml, 2 tablets',
     treatment_date   DATE NOT NULL,
     follow_up_date   DATE NULL,
     outcome          ENUM('recovered','ongoing','deceased','referred') NULL DEFAULT 'ongoing',
@@ -341,18 +345,16 @@ CREATE TABLE treatments (
     INDEX idx_treatments_animal (animal_id),
     INDEX idx_treatments_date   (treatment_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 16. `feed_records`
-Daily / per-event feed consumption logs per animal.
-```sql
-CREATE TABLE feed_records (
+-- -----------------------------------------------------------------------------
+-- 5. feed_records
+--    Daily / per-event feed consumption logs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS feed_records (
     id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     animal_id    INT UNSIGNED NOT NULL,
     recorded_by  INT UNSIGNED NOT NULL,
-    feed_type    VARCHAR(150) NOT NULL,
+    feed_type    VARCHAR(150) NOT NULL COMMENT 'e.g. hay, silage, concentrates',
     quantity_kg  DECIMAL(10, 2) NOT NULL,
     cost         DECIMAL(10, 2) NULL,
     feed_date    DATE NOT NULL,
@@ -363,17 +365,15 @@ CREATE TABLE feed_records (
     INDEX idx_feed_animal (animal_id),
     INDEX idx_feed_date   (feed_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 17. `breeding_records`
-Mating events and pregnancy outcomes.
-```sql
-CREATE TABLE breeding_records (
+-- -----------------------------------------------------------------------------
+-- 6. breeding_records
+--    Mating events and pregnancy outcomes
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS breeding_records (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    dam_id          INT UNSIGNED NOT NULL,
-    sire_id         INT UNSIGNED NULL,
+    dam_id          INT UNSIGNED NOT NULL  COMMENT 'Female animal',
+    sire_id         INT UNSIGNED NULL      COMMENT 'Male animal (null = artificial insemination)',
     recorded_by     INT UNSIGNED NOT NULL,
     mating_date     DATE NOT NULL,
     expected_birth  DATE NULL,
@@ -388,20 +388,18 @@ CREATE TABLE breeding_records (
     CONSTRAINT fk_breeding_recorder FOREIGN KEY (recorded_by) REFERENCES users (id)   ON DELETE CASCADE,
     INDEX idx_breeding_dam (dam_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 18. `livestock_production`
-Periodic production records (milk, eggs, wool) per animal.
-```sql
-CREATE TABLE livestock_production (
+-- -----------------------------------------------------------------------------
+-- 7. livestock_production
+--    Periodic production records (milk, eggs, wool) per animal
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS livestock_production (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     animal_id       INT UNSIGNED NOT NULL,
     recorded_by     INT UNSIGNED NOT NULL,
     product_type    ENUM('milk','eggs','wool','meat','honey','other') NOT NULL,
     quantity        DECIMAL(10, 2) NOT NULL,
-    unit            VARCHAR(20) NOT NULL,
+    unit            VARCHAR(20) NOT NULL COMMENT 'e.g. litres, kg, units',
     production_date DATE NOT NULL,
     quality_grade   ENUM('A','B','C','rejected') NULL DEFAULT 'A',
     notes           TEXT NULL,
@@ -412,16 +410,17 @@ CREATE TABLE livestock_production (
     INDEX idx_production_date   (production_date),
     INDEX idx_production_type   (product_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 005_irrigation.sql
+-- ---------------------------------------------------------------------------
 
-## 🟢 Implemented Schemas (Phase 3)
+-- =============================================================
+-- Migration 005: Irrigation & Water Management
+-- Depends on: 002_farms_fields.sql
+-- =============================================================
 
-### 19. `water_sources`
-Water resources available to a farm.
-```sql
-CREATE TABLE water_sources (
+CREATE TABLE IF NOT EXISTS water_sources (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     name                 VARCHAR(150) NOT NULL,
@@ -436,14 +435,8 @@ CREATE TABLE water_sources (
     CONSTRAINT fk_watersource_farm FOREIGN KEY (farm_id) REFERENCES farms (id) ON DELETE CASCADE,
     INDEX idx_watersource_farm (farm_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 20. `irrigation_systems`
-Irrigation hardware installed across fields.
-```sql
-CREATE TABLE irrigation_systems (
+CREATE TABLE IF NOT EXISTS irrigation_systems (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     field_id             INT UNSIGNED NULL,
@@ -462,14 +455,8 @@ CREATE TABLE irrigation_systems (
     INDEX idx_irrigsystem_farm  (farm_id),
     INDEX idx_irrigsystem_field (field_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 21. `irrigation_schedules`
-Automated and planned watering schedules.
-```sql
-CREATE TABLE irrigation_schedules (
+CREATE TABLE IF NOT EXISTS irrigation_schedules (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     system_id            INT UNSIGNED NOT NULL,
     field_id             INT UNSIGNED NOT NULL,
@@ -489,14 +476,8 @@ CREATE TABLE irrigation_schedules (
     INDEX idx_irrigsched_system (system_id),
     INDEX idx_irrigsched_field  (field_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 22. `water_consumption`
-Logged water consumption per system and field.
-```sql
-CREATE TABLE water_consumption (
+CREATE TABLE IF NOT EXISTS water_consumption (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     system_id            INT UNSIGNED NOT NULL,
     field_id             INT UNSIGNED NULL,
@@ -514,14 +495,17 @@ CREATE TABLE water_consumption (
     INDEX idx_consumption_field  (field_id),
     INDEX idx_consumption_date   (logged_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 006_inventory.sql
+-- ---------------------------------------------------------------------------
 
-### 23. `inventory_items`
-Farm consumables, tools, seeds, fertilizers, and supplies.
-```sql
-CREATE TABLE inventory_items (
+-- =============================================================
+-- Migration 006: Farm Inventory & Inputs
+-- Depends on: 002_farms_fields.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS inventory_items (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     name                 VARCHAR(150) NOT NULL,
@@ -542,14 +526,8 @@ CREATE TABLE inventory_items (
     INDEX idx_invitem_category (category),
     INDEX idx_invitem_sku      (sku)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 24. `stock_movements`
-Ledger of stock adjustments, receipts, and consumption.
-```sql
-CREATE TABLE stock_movements (
+CREATE TABLE IF NOT EXISTS stock_movements (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     item_id              INT UNSIGNED NOT NULL,
     recorded_by          INT UNSIGNED NOT NULL,
@@ -566,14 +544,17 @@ CREATE TABLE stock_movements (
     INDEX idx_stockmove_type (movement_type),
     INDEX idx_stockmove_date (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 007_equipment.sql
+-- ---------------------------------------------------------------------------
 
-### 25. `equipment`
-Farm machinery, implements, and asset registry.
-```sql
-CREATE TABLE equipment (
+-- =============================================================
+-- Migration 007: Farm Equipment & Machinery
+-- Depends on: 002_farms_fields.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS equipment (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     name                 VARCHAR(150) NOT NULL,
@@ -595,14 +576,8 @@ CREATE TABLE equipment (
     INDEX idx_equipment_type   (type),
     INDEX idx_equipment_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 26. `maintenance_schedules`
-Preventative maintenance intervals for equipment.
-```sql
-CREATE TABLE maintenance_schedules (
+CREATE TABLE IF NOT EXISTS maintenance_schedules (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     equipment_id         INT UNSIGNED NOT NULL,
     service_type         VARCHAR(150) NOT NULL,
@@ -620,14 +595,8 @@ CREATE TABLE maintenance_schedules (
     INDEX idx_maintsched_equipment (equipment_id),
     INDEX idx_maintsched_status    (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 27. `repair_history`
-Unscheduled repairs and technician service logs.
-```sql
-CREATE TABLE repair_history (
+CREATE TABLE IF NOT EXISTS repair_history (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     equipment_id         INT UNSIGNED NOT NULL,
     recorded_by          INT UNSIGNED NOT NULL,
@@ -642,14 +611,8 @@ CREATE TABLE repair_history (
     INDEX idx_repair_equipment (equipment_id),
     INDEX idx_repair_date      (repair_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 28. `fuel_logs`
-Fuel consumption and hour meter logs.
-```sql
-CREATE TABLE fuel_logs (
+CREATE TABLE IF NOT EXISTS fuel_logs (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     equipment_id         INT UNSIGNED NOT NULL,
     recorded_by          INT UNSIGNED NOT NULL,
@@ -664,14 +627,17 @@ CREATE TABLE fuel_logs (
     INDEX idx_fuellog_equipment (equipment_id),
     INDEX idx_fuellog_date      (logged_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 008_labour.sql
+-- ---------------------------------------------------------------------------
 
-### 29. `workers`
-Farm employees and labour staff.
-```sql
-CREATE TABLE workers (
+-- =============================================================
+-- Migration 008: Labour & Employee Management
+-- Depends on: 002_farms_fields.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS workers (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     user_id              INT UNSIGNED NULL,
@@ -695,14 +661,8 @@ CREATE TABLE workers (
     INDEX idx_worker_status (status),
     INDEX idx_worker_role   (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 30. `worker_attendance`
-Daily attendance records per worker.
-```sql
-CREATE TABLE worker_attendance (
+CREATE TABLE IF NOT EXISTS worker_attendance (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     worker_id            INT UNSIGNED NOT NULL,
     farm_id              INT UNSIGNED NOT NULL,
@@ -720,14 +680,8 @@ CREATE TABLE worker_attendance (
     INDEX idx_attend_farm (farm_id),
     INDEX idx_attend_date (work_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 31. `task_assignments`
-Daily work orders and field task dispatching.
-```sql
-CREATE TABLE task_assignments (
+CREATE TABLE IF NOT EXISTS task_assignments (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     field_id             INT UNSIGNED NULL,
@@ -749,14 +703,8 @@ CREATE TABLE task_assignments (
     INDEX idx_task_worker (worker_id),
     INDEX idx_task_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 32. `payroll_records`
-Worker wages and payroll disbursements.
-```sql
-CREATE TABLE payroll_records (
+CREATE TABLE IF NOT EXISTS payroll_records (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     worker_id            INT UNSIGNED NOT NULL,
     farm_id              INT UNSIGNED NOT NULL,
@@ -781,14 +729,17 @@ CREATE TABLE payroll_records (
     INDEX idx_payroll_farm   (farm_id),
     INDEX idx_payroll_period (period_start, period_end)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 009_pest_disease.sql
+-- ---------------------------------------------------------------------------
 
-### 33. `pests_diseases`
-Agronomic pest, fungus, and disease database.
-```sql
-CREATE TABLE pests_diseases (
+-- =============================================================
+-- Migration 009: Pest & Disease Management
+-- Depends on: 002_farms_fields.sql, 003_crops.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS pests_diseases (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     name                 VARCHAR(150) NOT NULL,
     scientific_name      VARCHAR(150) NULL,
@@ -801,14 +752,8 @@ CREATE TABLE pests_diseases (
     INDEX idx_pest_type (type),
     INDEX idx_pest_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 34. `scouting_records`
-Field observations and pest incidence reporting.
-```sql
-CREATE TABLE scouting_records (
+CREATE TABLE IF NOT EXISTS scouting_records (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     field_id             INT UNSIGNED NOT NULL,
@@ -832,14 +777,8 @@ CREATE TABLE scouting_records (
     INDEX idx_scout_severity (severity),
     INDEX idx_scout_date     (observation_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 35. `pest_treatments`
-Chemical application and spraying effectiveness logs.
-```sql
-CREATE TABLE pest_treatments (
+CREATE TABLE IF NOT EXISTS pest_treatments (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     scouting_id          INT UNSIGNED NULL,
     field_id             INT UNSIGNED NOT NULL,
@@ -862,14 +801,17 @@ CREATE TABLE pest_treatments (
     INDEX idx_treat_field (field_id),
     INDEX idx_treat_date  (application_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 010_weather.sql
+-- ---------------------------------------------------------------------------
 
-### 36. `weather_observations`
-Microclimate weather observations and sensor logs.
-```sql
-CREATE TABLE weather_observations (
+-- =============================================================
+-- Migration 010: Weather & Environmental Monitoring
+-- Depends on: 002_farms_fields.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS weather_observations (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     recorded_by          INT UNSIGNED NULL,
@@ -890,14 +832,8 @@ CREATE TABLE weather_observations (
     INDEX idx_weather_farm (farm_id),
     INDEX idx_weather_date (observed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 37. `weather_alerts`
-Active environmental risks, frost warnings, and severe weather advisories.
-```sql
-CREATE TABLE weather_alerts (
+CREATE TABLE IF NOT EXISTS weather_alerts (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     created_by           INT UNSIGNED NULL,
@@ -915,18 +851,17 @@ CREATE TABLE weather_alerts (
     INDEX idx_weathalert_farm   (farm_id),
     INDEX idx_weathalert_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 011_harvest.sql
+-- ---------------------------------------------------------------------------
 
----
+-- =============================================================
+-- Migration 011: Harvest Management
+-- Depends on: 002_farms_fields.sql, 003_crops.sql, 001_users_roles.sql
+-- =============================================================
 
-## 🟢 Implemented Schemas (Phase 4)
-
-### 38. `harvest_records`
-Harvest yields, quality grading, and post-harvest loss tracking.
-```sql
-CREATE TABLE harvest_records (
+CREATE TABLE IF NOT EXISTS harvest_records (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     field_id             INT UNSIGNED NOT NULL,
@@ -938,28 +873,48 @@ CREATE TABLE harvest_records (
     expected_yield_kg    DECIMAL(10, 2) NULL,
     loss_kg              DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     quality_grade        ENUM('A','B','C','rejected') NOT NULL DEFAULT 'A',
-    storage_location     VARCHAR(100) NULL,
+    storage_location     VARCHAR(150) NULL,
     notes                TEXT NULL,
     created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_harvest_farm     FOREIGN KEY (farm_id)      REFERENCES farms (id)           ON DELETE CASCADE,
-    CONSTRAINT fk_harvest_field    FOREIGN KEY (field_id)     REFERENCES fields (id)          ON DELETE CASCADE,
-    CONSTRAINT fk_harvest_crop     FOREIGN KEY (crop_id)      REFERENCES crops (id)           ON DELETE CASCADE,
-    CONSTRAINT fk_harvest_variety  FOREIGN KEY (variety_id)   REFERENCES crop_varieties (id)  ON DELETE SET NULL,
-    CONSTRAINT fk_harvest_recorder FOREIGN KEY (harvested_by) REFERENCES users (id)           ON DELETE CASCADE,
+    CONSTRAINT fk_harvest_farm     FOREIGN KEY (farm_id)      REFERENCES farms (id)          ON DELETE CASCADE,
+    CONSTRAINT fk_harvest_field    FOREIGN KEY (field_id)     REFERENCES fields (id)         ON DELETE CASCADE,
+    CONSTRAINT fk_harvest_crop     FOREIGN KEY (crop_id)      REFERENCES crops (id)          ON DELETE CASCADE,
+    CONSTRAINT fk_harvest_variety  FOREIGN KEY (variety_id)   REFERENCES crop_varieties (id) ON DELETE SET NULL,
+    CONSTRAINT fk_harvest_recorder FOREIGN KEY (harvested_by) REFERENCES users (id)          ON DELETE CASCADE,
     INDEX idx_harvest_farm  (farm_id),
     INDEX idx_harvest_field (field_id),
     INDEX idx_harvest_crop  (crop_id),
     INDEX idx_harvest_date  (harvest_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+CREATE TABLE IF NOT EXISTS harvest_quality (
+    id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    harvest_id           INT UNSIGNED NOT NULL,
+    inspected_by         INT UNSIGNED NOT NULL,
+    moisture_content_pct DECIMAL(5, 2) NULL,
+    foreign_matter_pct   DECIMAL(5, 2) NULL,
+    defect_rate_pct      DECIMAL(5, 2) NULL,
+    sugar_brix           DECIMAL(4, 2) NULL,
+    certification_status ENUM('standard','organic','global_gap','fair_trade','pending') NOT NULL DEFAULT 'standard',
+    inspection_date      DATE NOT NULL,
+    notes                TEXT NULL,
+    created_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_hq_harvest   FOREIGN KEY (harvest_id)   REFERENCES harvest_records (id) ON DELETE CASCADE,
+    CONSTRAINT fk_hq_inspector FOREIGN KEY (inspected_by) REFERENCES users (id)           ON DELETE CASCADE,
+    INDEX idx_hq_harvest (harvest_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-### 39. `customers`
-Buyers, wholesale clients, and retailers.
-```sql
-CREATE TABLE customers (
+-- ---------------------------------------------------------------------------
+-- SECTION: 012_sales.sql
+-- ---------------------------------------------------------------------------
+
+-- =============================================================
+-- Migration 012: Market & Sales Management
+-- Depends on: 002_farms_fields.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS customers (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     name                 VARCHAR(150) NOT NULL,
@@ -978,14 +933,8 @@ CREATE TABLE customers (
     INDEX idx_customer_farm (farm_id),
     INDEX idx_customer_type (type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 40. `sales_orders`
-Sales orders created for customers.
-```sql
-CREATE TABLE sales_orders (
+CREATE TABLE IF NOT EXISTS sales_orders (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     customer_id          INT UNSIGNED NOT NULL,
@@ -1005,14 +954,8 @@ CREATE TABLE sales_orders (
     INDEX idx_so_customer (customer_id),
     INDEX idx_so_status   (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 41. `order_items`
-Line items attached to sales orders.
-```sql
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id             INT UNSIGNED NOT NULL,
     item_type            ENUM('crop','livestock','value_added','other') NOT NULL DEFAULT 'crop',
@@ -1025,14 +968,8 @@ CREATE TABLE order_items (
     CONSTRAINT fk_oi_order FOREIGN KEY (order_id) REFERENCES sales_orders (id) ON DELETE CASCADE,
     INDEX idx_oi_order (order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 42. `invoices`
-Billing invoices generated from sales orders.
-```sql
-CREATE TABLE invoices (
+CREATE TABLE IF NOT EXISTS invoices (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     order_id             INT UNSIGNED NOT NULL UNIQUE,
     customer_id          INT UNSIGNED NOT NULL,
@@ -1052,14 +989,8 @@ CREATE TABLE invoices (
     INDEX idx_inv_customer (customer_id),
     INDEX idx_inv_status   (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 43. `payments`
-Payment receipts logged against invoices.
-```sql
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     invoice_id           INT UNSIGNED NOT NULL,
     customer_id          INT UNSIGNED NOT NULL,
@@ -1076,14 +1007,8 @@ CREATE TABLE payments (
     INDEX idx_pay_invoice  (invoice_id),
     INDEX idx_pay_customer (customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 44. `market_prices`
-Commodity price benchmark and historical trend records.
-```sql
-CREATE TABLE market_prices (
+CREATE TABLE IF NOT EXISTS market_prices (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     commodity_name       VARCHAR(150) NOT NULL,
     market_location      VARCHAR(100) NOT NULL,
@@ -1097,14 +1022,17 @@ CREATE TABLE market_prices (
     INDEX idx_mp_location  (market_location),
     INDEX idx_mp_date      (recorded_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 013_finance.sql
+-- ---------------------------------------------------------------------------
 
-### 45. `income_records`
-Farm revenues, grants, subsidies, and income entries.
-```sql
-CREATE TABLE income_records (
+-- =============================================================
+-- Migration 013: Financial Management
+-- Depends on: 002_farms_fields.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS income_records (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     recorded_by          INT UNSIGNED NOT NULL,
@@ -1123,14 +1051,8 @@ CREATE TABLE income_records (
     INDEX idx_inc_category (category),
     INDEX idx_inc_date     (date_received)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 46. `expense_records`
-Operational costs, inputs, wages, utilities, and expenditures.
-```sql
-CREATE TABLE expense_records (
+CREATE TABLE IF NOT EXISTS expense_records (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     recorded_by          INT UNSIGNED NOT NULL,
@@ -1149,14 +1071,8 @@ CREATE TABLE expense_records (
     INDEX idx_exp_category (category),
     INDEX idx_exp_date     (date_incurred)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 47. `loans`
-Farm debt liabilities, bank financing, and repayment progress.
-```sql
-CREATE TABLE loans (
+CREATE TABLE IF NOT EXISTS loans (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     recorded_by          INT UNSIGNED NOT NULL,
@@ -1177,14 +1093,8 @@ CREATE TABLE loans (
     INDEX idx_loan_farm   (farm_id),
     INDEX idx_loan_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 48. `budgets`
-Financial budget allocations vs actual spending.
-```sql
-CREATE TABLE budgets (
+CREATE TABLE IF NOT EXISTS budgets (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     created_by           INT UNSIGNED NOT NULL,
@@ -1201,14 +1111,17 @@ CREATE TABLE budgets (
     INDEX idx_budget_farm (farm_id),
     INDEX idx_budget_year (fiscal_year)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 014_suppliers.sql
+-- ---------------------------------------------------------------------------
 
-### 49. `suppliers`
-Farm vendor registry with categories, terms, and ratings.
-```sql
-CREATE TABLE suppliers (
+-- =============================================================
+-- Migration 014: Supplier & Procurement Management
+-- Depends on: 002_farms_fields.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS suppliers (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     name                 VARCHAR(150) NOT NULL,
@@ -1228,14 +1141,8 @@ CREATE TABLE suppliers (
     INDEX idx_supp_farm     (farm_id),
     INDEX idx_supp_category (category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 50. `supplier_quotations`
-Item quotes and pricing validity provided by suppliers.
-```sql
-CREATE TABLE supplier_quotations (
+CREATE TABLE IF NOT EXISTS supplier_quotations (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     supplier_id          INT UNSIGNED NOT NULL,
     farm_id              INT UNSIGNED NOT NULL,
@@ -1249,14 +1156,8 @@ CREATE TABLE supplier_quotations (
     CONSTRAINT fk_quote_farm     FOREIGN KEY (farm_id)     REFERENCES farms (id)     ON DELETE CASCADE,
     INDEX idx_quote_supplier (supplier_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 51. `purchase_orders`
-Procurement purchase orders and approval workflow.
-```sql
-CREATE TABLE purchase_orders (
+CREATE TABLE IF NOT EXISTS purchase_orders (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     supplier_id          INT UNSIGNED NOT NULL,
@@ -1278,14 +1179,8 @@ CREATE TABLE purchase_orders (
     INDEX idx_po_supplier (supplier_id),
     INDEX idx_po_status   (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 52. `purchase_order_items`
-Line items under purchase orders.
-```sql
-CREATE TABLE purchase_order_items (
+CREATE TABLE IF NOT EXISTS purchase_order_items (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     purchase_order_id    INT UNSIGNED NOT NULL,
     description          VARCHAR(200) NOT NULL,
@@ -1296,14 +1191,17 @@ CREATE TABLE purchase_order_items (
     CONSTRAINT fk_poi_order FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders (id) ON DELETE CASCADE,
     INDEX idx_poi_order (purchase_order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 015_storage.sql
+-- ---------------------------------------------------------------------------
 
-### 53. `warehouses`
-Silos, cold storage facilities, sheds, and warehouses.
-```sql
-CREATE TABLE warehouses (
+-- =============================================================
+-- Migration 015: Storage & Post-Harvest Management
+-- Depends on: 002_farms_fields.sql, 003_crops.sql, 011_harvest.sql, 001_users_roles.sql
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS warehouses (
     id                     INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id                INT UNSIGNED NOT NULL,
     name                   VARCHAR(150) NOT NULL,
@@ -1318,14 +1216,8 @@ CREATE TABLE warehouses (
     CONSTRAINT fk_wh_farm FOREIGN KEY (farm_id) REFERENCES farms (id) ON DELETE CASCADE,
     INDEX idx_wh_farm (farm_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 54. `storage_batches`
-Stored produce batches, remaining quantities, and spoilage.
-```sql
-CREATE TABLE storage_batches (
+CREATE TABLE IF NOT EXISTS storage_batches (
     id                     INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     warehouse_id           INT UNSIGNED NOT NULL,
     harvest_id             INT UNSIGNED NULL,
@@ -1349,14 +1241,8 @@ CREATE TABLE storage_batches (
     INDEX idx_batch_crop   (crop_id),
     INDEX idx_batch_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 55. `storage_movements` & `dispatch_records`
-Intake, dispatch, and spoilage ledger.
-```sql
-CREATE TABLE storage_movements (
+CREATE TABLE IF NOT EXISTS storage_movements (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     batch_id             INT UNSIGNED NOT NULL,
     recorded_by          INT UNSIGNED NOT NULL,
@@ -1369,7 +1255,7 @@ CREATE TABLE storage_movements (
     INDEX idx_sm_batch (batch_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE dispatch_records (
+CREATE TABLE IF NOT EXISTS dispatch_records (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     batch_id             INT UNSIGNED NOT NULL,
     order_id             INT UNSIGNED NULL,
@@ -1387,18 +1273,17 @@ CREATE TABLE dispatch_records (
     INDEX idx_disp_batch (batch_id),
     INDEX idx_disp_date  (dispatch_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
+-- ---------------------------------------------------------------------------
+-- SECTION: 016_notifications.sql
+-- ---------------------------------------------------------------------------
 
----
+-- =============================================================
+-- Migration 016: Notifications & System Alerts
+-- Depends on: 002_farms_fields.sql, 001_users_roles.sql
+-- =============================================================
 
-## 🟢 Implemented Schemas (Phase 5)
-
-### 56. `alerts`
-System alerts, diagnostics, risk warnings, and automated notification triggers.
-```sql
-CREATE TABLE alerts (
+CREATE TABLE IF NOT EXISTS alerts (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id              INT UNSIGNED NOT NULL,
     user_id              INT UNSIGNED NULL,
@@ -1418,14 +1303,8 @@ CREATE TABLE alerts (
     INDEX idx_alert_severity  (severity),
     INDEX idx_alert_dismissed (is_dismissed)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
 
----
-
-### 57. `notification_logs`
-Delivery channel logging and dispatch history.
-```sql
-CREATE TABLE notification_logs (
+CREATE TABLE IF NOT EXISTS notification_logs (
     id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     alert_id             INT UNSIGNED NOT NULL,
     channel              ENUM('in_app','email','sms') NOT NULL DEFAULT 'in_app',
@@ -1434,29 +1313,3 @@ CREATE TABLE notification_logs (
     CONSTRAINT fk_notif_alert FOREIGN KEY (alert_id) REFERENCES alerts (id) ON DELETE CASCADE,
     INDEX idx_notif_alert (alert_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
-
----
-
-## 🏁 All Backend Schemas Implemented (Phases 1–5 Complete)
-
-All planned database entities across all 18 feature modules are now implemented, migrated, indexed, and wired to the backend API.
-
----
-
-## 📌 Schema Design Guidelines for Teammates
-
-1. **Naming Conventions**:
-   - Use `snake_case` for all table names and column names.
-   - Use plural nouns for table names (`farms`, `users`, `harvests`).
-   - Primary key must always be `id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY`.
-2. **Foreign Keys**:
-   - Foreign keys must end with `_id` (e.g. `farm_id`, `user_id`).
-   - Explicitly define foreign key constraints with `CONSTRAINT fk_tablename_columnname`.
-3. **Timestamps**:
-   - Always include `created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`.
-   - Include `updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP` for mutable records.
-4. **Migrations**:
-   - Save SQL definitions in `database/migrations/00X_filename.sql` sequentially before writing backend models.
-
-

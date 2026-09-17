@@ -8,7 +8,7 @@
 -- 1. farms
 --    Top-level entity. A user (farm_owner / admin) owns one or many farms.
 -- -----------------------------------------------------------------------------
-CREATE TABLE farms (
+CREATE TABLE IF NOT EXISTS farms (
     id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     owner_id      INT UNSIGNED NOT NULL,
     name          VARCHAR(150) NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE farms (
 -- 2. fields
 --    A farm is divided into fields. Each field has soil metadata and GPS bounds.
 -- -----------------------------------------------------------------------------
-CREATE TABLE fields (
+CREATE TABLE IF NOT EXISTS fields (
     id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     farm_id         INT UNSIGNED NOT NULL,
     name            VARCHAR(150) NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE fields (
 -- 3. plots
 --    Optional sub-division of a field (raised beds, blocks, zones).
 -- -----------------------------------------------------------------------------
-CREATE TABLE plots (
+CREATE TABLE IF NOT EXISTS plots (
     id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     field_id    INT UNSIGNED NOT NULL,
     name        VARCHAR(100) NOT NULL,
