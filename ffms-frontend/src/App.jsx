@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 
 import Login from "./pages/Login";
@@ -24,32 +25,42 @@ import Alerts from "./pages/Alerts";
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/farm" element={<Farm />} />
-          <Route path="/crops" element={<Crops />} />
-          <Route path="/livestock" element={<Livestock />} />
-          <Route path="/irrigation" element={<Irrigation />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/tools" element={<Tools />} />
-          <Route path="/labour" element={<Labour />} />
-          <Route path="/pest-disease" element={<PestDisease />} />
-          <Route path="/weather" element={<Weather />} />
-          <Route path="/harvest" element={<Harvest />} />
-          <Route path="/sales" element={<Sales />} />
-          <Route path="/money" element={<Money />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/storage" element={<Storage />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/alerts" element={<Alerts />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+          {/* Protected Application Routes */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/farm" element={<Farm />} />
+            <Route path="/crops" element={<Crops />} />
+            <Route path="/livestock" element={<Livestock />} />
+            <Route path="/irrigation" element={<Irrigation />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/tools" element={<Tools />} />
+            <Route path="/labour" element={<Labour />} />
+            <Route path="/pest-disease" element={<PestDisease />} />
+            <Route path="/weather" element={<Weather />} />
+            <Route path="/harvest" element={<Harvest />} />
+            <Route path="/sales" element={<Sales />} />
+            <Route path="/money" element={<Money />} />
+            <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/storage" element={<Storage />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/alerts" element={<Alerts />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

@@ -50,9 +50,13 @@
 ├── docs/                           # Project documentation & specs
 │   ├── backend/
 │   │   ├── schema.md               # Single source of truth for DB tables & planned schema
-│   │   └── phases/                 # Phase completion reports (Phase 1, 2, 3, 4)
+│   │   └── phases/                 # Backend Phase completion reports (Phases 1-5)
+│   ├── frontend/
+│   │   ├── frontend_workflow.md    # Master checklist & progress tracker for frontend phases
+│   │   └── phases/                 # Frontend Phase completion reports (Phases 1-5)
+│   ├── backend_frontend_integration.md # Master architectural integration plan
 │   ├── AI_CONTEXT.md               # THIS FILE — LLM context & developer rules
-│   ├── backend_workflow.md         # Master checklist & progress tracker across all 5 phases
+│   ├── backend_workflow.md         # Master checklist & progress tracker across all 5 backend phases
 │   ├── assignment-scope.md         # Original brief requirement groups
 │   ├── module-map.md               # Ownership map for feature modules
 │   └── team-workflow.md            # Git branching and team rules
@@ -271,6 +275,18 @@ All 5 development phases of the backend API have been completed, migrated, verif
 
 ---
 
+### 🖥️ Frontend Integration Roadmap (`ffms-frontend/`)
+
+| Phase | Scope | Target Services & Components | Status |
+|---|---|---|:---:|
+| **Phase 1** | Foundation, Auth & Central API Client | `api.js`, `authService.js`, `AuthContext.jsx`, `ProtectedRoute.jsx`, `Login.jsx`, `Register.jsx`, `Navbar.jsx` | Complete ✅ |
+| **Phase 2** | Core Farm Operations | `farmService.js`, `cropService.js`, `livestockService.js`, `Modal.jsx`, `Dashboard.jsx`, `Farm.jsx`, `Crops.jsx`, `Livestock.jsx` | Complete ✅ |
+| **Phase 3** | Field Operations & Resources | `irrigationService.js`, `inventoryService.js`, `equipmentService.js`, `labourService.js`, `pestDiseaseService.js`, `weatherService.js`, `Irrigation.jsx`, `Inventory.jsx`, `Tools.jsx`, `Labour.jsx`, `PestDisease.jsx`, `Weather.jsx` | Complete ✅ |
+| **Phase 4** | Harvest, Commerce, Storage & Finance | `harvestService.js`, `salesService.js`, `financeService.js`, `supplierService.js`, `storageService.js`, `Harvest.jsx`, `Sales.jsx`, `Money.jsx`, `Suppliers.jsx`, `Storage.jsx` | Complete ✅ |
+| **Phase 5** | Analytics, Reports & Live Alerts | `reportService.js`, `alertService.js`, `Reports.jsx` (13 reports), `Alerts.jsx`, `Navbar.jsx` | Complete ✅ |
+
+---
+
 ## 5. Critical Instructions for AI Assistants
 
 1. **Relative Paths Only**:
@@ -294,14 +310,26 @@ All 5 development phases of the backend API have been completed, migrated, verif
 
 ## 6. Required Documentation Updates per Phase Completion / Modification
 
-Whenever a development phase is modified or completed, AI assistants MUST ensure the following **5 documentation files** are created or updated:
+### A. Backend Phase Housekeeping Rules
+Whenever a backend development phase is modified or completed, AI assistants MUST ensure the following **5 documentation files** are created or updated:
 
 | # | Document | Action | Content Requirements |
 |---|---|---|---|
-| 1 | 📄 **Phase Completion Report**<br>`docs/backend/phases/PHASE_<N>_<NAME>.md` | **CREATE** | Full phase report: Executive summary, implemented SQL tables, backend classes created/modified, complete API endpoint specs (JSON payloads), and teammate integration guide. |
+| 1 | 📄 **Backend Phase Report**<br>`docs/backend/phases/PHASE_<N>_<NAME>.md` | **CREATE** | Full phase report: Executive summary, implemented SQL tables, backend classes created/modified, complete API endpoint specs (JSON payloads), and teammate integration guide. |
 | 2 | 🗄️ **Central Database Schema**<br>`docs/backend/schema.md` | **UPDATE** | Move newly implemented SQL table definitions from "Planned Schemas" to "Implemented Schemas" with full column types, primary/foreign keys, and constraints. |
-| 3 | 🌾 **Master Workflow Checklist**<br>`backend_workflow.md` | **UPDATE** | Check off completed tasks (`[x]`) in the phase section and update the Progress Tracker table with `☑` checkmarks across DB, Model, Controller, Routes, and Tested. |
+| 3 | 🌾 **Backend Workflow Checklist**<br>`docs/backend_workflow.md` | **UPDATE** | Check off completed tasks (`[x]`) in the phase section and update the Progress Tracker table with `☑` checkmarks across DB, Model, Controller, Routes, and Tested. |
 | 4 | 📘 **Main README**<br>`README.md` | **UPDATE** | Update the API Endpoints Overview table with any new public or protected endpoints added during the phase. |
 | 5 | 🤖 **AI Assistant Context**<br>`docs/AI_CONTEXT.md` | **UPDATE** | Update Section 4 ("Current Progress & Phase Roadmap") to reflect the newly completed phase and its deliverables. |
+
+### B. Frontend Phase Housekeeping Rules
+Whenever a frontend integration phase is completed or modified, AI assistants MUST ensure the following **4 documentation files** are created or updated:
+
+| # | Document | Action | Content Requirements |
+|---|---|---|---|
+| 1 | 📄 **Frontend Phase Report**<br>`docs/frontend/phases/PHASE_<N>_<NAME>.md` | **CREATE** | Full frontend phase report: Implemented React services, component changes, state management/context updates, route guards/RBAC, UI screenshot/mock flows, and API integration tests. |
+| 2 | 🖥️ **Frontend Workflow Checklist**<br>`docs/frontend/frontend_workflow.md` | **UPDATE** | Check off completed tasks (`[x]`) in the phase section and update the Master Frontend Progress Tracker table (`☑` across Services, Pages, Auth/RBAC, and Tested). |
+| 3 | 🔌 **Integration Blueprint**<br>`docs/backend_frontend_integration.md` | **UPDATE** | Mark corresponding frontend components and services as connected with live API endpoints. |
+| 4 | 🤖 **AI Assistant Context**<br>`docs/AI_CONTEXT.md` | **UPDATE** | Update the Frontend Integration Roadmap table in Section 4 with phase completion deliverables and status. |
+
 
 
