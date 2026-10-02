@@ -88,7 +88,7 @@ function Weather() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Meteorological & Weather Intelligence</h1>
           <p>Real-time microclimate conditions, 5-day predictive forecasts, and frost/storm risk alerts.</p>
@@ -97,15 +97,7 @@ function Weather() {
           <button
             type="button"
             onClick={() => setIsObserveModalOpen(true)}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "var(--color-forest, #1E4632)",
-              color: "#FFF",
-              border: "1px solid var(--color-gold, #D4A54A)",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="btn-primary"
           >
             + Log Weather Reading
           </button>
@@ -113,7 +105,7 @@ function Weather() {
       </div>
 
       {/* Farm Selector Bar */}
-      <div className="content-card" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", marginBottom: "20px" }}>
+      <div className="content-card" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", marginBottom: "20px", flexWrap: "wrap" }}>
         <label style={{ fontWeight: 700, color: "var(--color-forest)" }}>Select Farm Estate:</label>
         <select
           value={selectedFarmId}

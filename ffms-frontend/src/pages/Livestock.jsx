@@ -229,24 +229,24 @@ function Livestock() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Livestock Herd & Health</h1>
           <p>Track herd registry, breeding genetics, medical treatments, and vaccinations.</p>
         </div>
         {canManage && (
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="page-header-actions">
             <button
               type="button"
               onClick={() => setIsBreedModalOpen(true)}
-              style={{ padding: "8px 14px", backgroundColor: "#7A4A52", color: "#FFF", border: "none", borderRadius: "6px", fontWeight: 600, cursor: "pointer" }}
+              className="btn-secondary"
             >
               + Add Breed
             </button>
             <button
               type="button"
               onClick={() => setIsAnimalModalOpen(true)}
-              style={{ padding: "8px 16px", backgroundColor: "var(--color-forest)", color: "#FFF", border: "1px solid var(--color-gold)", borderRadius: "6px", fontWeight: 600, cursor: "pointer" }}
+              className="btn-primary"
             >
               + Register Animal
             </button>
@@ -255,7 +255,7 @@ function Livestock() {
       </div>
 
       {/* Farm Selector Bar */}
-      <div className="content-card" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", marginBottom: "20px" }}>
+      <div className="content-card" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", marginBottom: "20px", flexWrap: "wrap" }}>
         <label style={{ fontWeight: 700, color: "var(--color-forest)" }}>Select Farm Estate:</label>
         <select
           value={selectedFarmId}
@@ -285,7 +285,7 @@ function Livestock() {
           <p>Click "+ Register Animal" above to add your first animal to this farm herd.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "24px", alignItems: "start" }}>
+        <div className="master-detail-layout">
           {/* Herd List */}
           <div>
             <h3 style={{ fontSize: "1.1rem", color: "var(--color-forest)", marginBottom: "12px" }}>Herd Registry</h3>

@@ -240,40 +240,24 @@ function Sales() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Sales, Orders & Market Prices</h1>
           <p>Manage customer directory, contract orders, invoices, and real-time commodity pricing.</p>
         </div>
         {canManage && (
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="page-header-actions">
             <button
               type="button"
               onClick={() => setIsCustomerModalOpen(true)}
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "#FFF",
-                color: "var(--color-forest, #1E4632)",
-                border: "1px solid var(--color-forest, #1E4632)",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+              className="btn-secondary"
             >
               + Add Customer
             </button>
             <button
               type="button"
               onClick={() => setIsOrderModalOpen(true)}
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "var(--color-forest, #1E4632)",
-                color: "#FFF",
-                border: "1px solid var(--color-gold, #D4A54A)",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+              className="btn-primary"
             >
               + Create Sales Order
             </button>
@@ -282,14 +266,7 @@ function Sales() {
       </div>
 
       {/* Metrics Header */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
+      <div className="kpi-grid" style={{ marginBottom: "24px" }}>
         <div className="content-card" style={{ padding: "16px", borderLeft: "4px solid #2E7D32" }}>
           <div style={{ fontSize: "12px", color: "#666", textTransform: "uppercase", fontWeight: 700 }}>
             Total Sales Value
@@ -332,7 +309,7 @@ function Sales() {
       </div>
 
       {/* Tabs Navigation */}
-      <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #E0E0E0", marginBottom: "20px" }}>
+      <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #E0E0E0", marginBottom: "20px", overflowX: "auto", whiteSpace: "nowrap", paddingBottom: "4px" }}>
         {[
           { id: "orders", label: `Sales Orders (${orders.length})` },
           { id: "customers", label: `Customers (${customers.length})` },
@@ -376,8 +353,8 @@ function Sales() {
                   <p>No sales orders created yet.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <div className="table-responsive">
+                  <table className="ffms-table">
                     <thead>
                       <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                         <th style={{ padding: "12px 16px" }}>Order #</th>
@@ -519,8 +496,8 @@ function Sales() {
                   </button>
                 )}
               </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "12px 16px" }}>Date</th>
@@ -556,8 +533,8 @@ function Sales() {
                   <p>No billing invoices found.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <div className="table-responsive">
+                  <table className="ffms-table">
                     <thead>
                       <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                         <th style={{ padding: "12px 16px" }}>Invoice #</th>

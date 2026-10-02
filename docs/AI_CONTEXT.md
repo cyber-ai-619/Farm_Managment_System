@@ -57,6 +57,8 @@
 │   ├── backend_frontend_integration.md # Master architectural integration plan
 │   ├── AI_CONTEXT.md               # THIS FILE — LLM context & developer rules
 │   ├── backend_workflow.md         # Master checklist & progress tracker across all 5 backend phases
+│   ├── QA_AND_DEPLOYMENT_AUDIT_PROMPT.md # Comprehensive AI QA & Deployment Readiness Mega-Prompt
+│   ├── UI_UX_IMPROVEMENT_PROMPT.md # AI Mega-Prompt for fixing layout, scaling, and responsive UI
 │   ├── assignment-scope.md         # Original brief requirement groups
 │   ├── module-map.md               # Ownership map for feature modules
 │   └── team-workflow.md            # Git branching and team rules

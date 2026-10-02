@@ -129,7 +129,7 @@ function Inventory() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Farm Inventory & Stock Control</h1>
           <p>Track fertilizers, seeds, pesticides, livestock feeds, tools, and spare parts.</p>
@@ -138,15 +138,7 @@ function Inventory() {
           <button
             type="button"
             onClick={() => setIsItemModalOpen(true)}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "var(--color-forest, #1E4632)",
-              color: "#FFF",
-              border: "1px solid var(--color-gold, #D4A54A)",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="btn-primary"
           >
             + Add Stock Item
           </button>
@@ -154,7 +146,7 @@ function Inventory() {
       </div>
 
       {/* Farm Selector Bar */}
-      <div className="content-card" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", marginBottom: "20px" }}>
+      <div className="content-card" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", marginBottom: "20px", flexWrap: "wrap" }}>
         <label style={{ fontWeight: 700, color: "var(--color-forest)" }}>Select Farm Estate:</label>
         <select
           value={selectedFarmId}

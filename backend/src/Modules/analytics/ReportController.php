@@ -302,8 +302,14 @@ class ReportController
         $harvStmt->execute([':farm_id' => $farmId, ':from' => $from, ':to' => $to]);
         $harv = $harvStmt->fetch(PDO::FETCH_ASSOC);
 
-        $finStmt = $this->pdo->prepare('SELECT (SELECT COALESCE(SUM(amount), 0) FROM income_records WHERE farm_id = :farm_id AND date_received BETWEEN :from AND :to) AS income, (SELECT COALESCE(SUM(amount), 0) FROM expense_records WHERE farm_id = :farm_id AND date_incurred BETWEEN :from AND :to) AS expenses');
-        $finStmt->execute([':farm_id' => $farmId, ':from' => $from, ':to' => $to]);
+        $finStmt = $this->pdo->prepare(
+            'SELECT (SELECT COALESCE(SUM(amount), 0) FROM income_records WHERE farm_id = :farm_id1 AND date_received BETWEEN :from1 AND :to1) AS income, 
+                    (SELECT COALESCE(SUM(amount), 0) FROM expense_records WHERE farm_id = :farm_id2 AND date_incurred BETWEEN :from2 AND :to2) AS expenses'
+        );
+        $finStmt->execute([
+            ':farm_id1' => $farmId, ':from1' => $from, ':to1' => $to,
+            ':farm_id2' => $farmId, ':from2' => $from, ':to2' => $to,
+        ]);
         $fin = $finStmt->fetch(PDO::FETCH_ASSOC);
 
         $inc = (float) $fin['income'];

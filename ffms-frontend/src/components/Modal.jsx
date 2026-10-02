@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) {
   useEffect(() => {
@@ -19,7 +20,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       style={{
         position: "fixed",
@@ -28,8 +29,8 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
         backdropFilter: "blur(4px)",
         display: "grid",
         placeItems: "center",
-        zIndex: 1000,
-        padding: "20px",
+        zIndex: 9999,
+        padding: "clamp(12px, 3vw, 24px)",
         overflowY: "auto",
         animation: "fadeIn 0.2s ease",
       }}
@@ -38,7 +39,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
       <div
         style={{
           width: "100%",
-          maxWidth,
+          maxWidth: `min(100%, ${maxWidth})`,
           backgroundColor: "#FFFFFF",
           borderRadius: "16px",
           border: "1px solid rgba(212, 165, 74, 0.35)",
@@ -63,7 +64,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            padding: "18px 24px",
+            padding: "16px clamp(16px, 3vw, 24px)",
             borderBottom: "1px solid rgba(30, 70, 50, 0.1)",
           }}
         >
@@ -71,7 +72,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
             style={{
               margin: 0,
               fontFamily: "'Fraunces', Georgia, serif",
-              fontSize: "1.3rem",
+              fontSize: "1.25rem",
               color: "var(--color-forest, #1E4632)",
             }}
           >
@@ -97,11 +98,12 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: "24px", maxHeight: "calc(85vh - 100px)", overflowY: "auto" }}>
+        <div style={{ padding: "clamp(16px, 3vw, 24px)", maxHeight: "calc(85vh - 90px)", overflowY: "auto" }}>
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

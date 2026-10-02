@@ -391,8 +391,8 @@ function Reports() {
           {activeReport === "expenses" && (
             <div className="page-content-section">
               <h2>Itemized Expenses Audit ({reportData.count || 0} records)</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Date</th>
@@ -426,8 +426,8 @@ function Reports() {
           {activeReport === "sales" && (
             <div className="page-content-section">
               <h2>Commercial Sales Summary ({reportData.count || 0} orders)</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Order ID</th>
@@ -461,8 +461,8 @@ function Reports() {
           {activeReport === "profitability" && (
             <div className="page-content-section">
               <h2>Crop Profitability & Revenue Generated</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Crop Name</th>
@@ -498,8 +498,8 @@ function Reports() {
                   <span>Total Losses:</span> <strong style={{ color: "#C0392B" }}>{reportData.total_loss_kg?.toLocaleString()} kg</strong>
                 </div>
               </div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Date</th>
@@ -537,8 +537,8 @@ function Reports() {
           {activeReport === "crop_production" && (
             <div className="page-content-section">
               <h2>Crop Plantings & Cycles ({reportData.count || 0} schedules)</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Crop</th>
@@ -570,8 +570,8 @@ function Reports() {
           {activeReport === "livestock" && (
             <div className="page-content-section">
               <h2>Livestock Productivity & Medical Audits</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Tag #</th>
@@ -603,8 +603,8 @@ function Reports() {
           {activeReport === "inventory" && (
             <div className="page-content-section">
               <h2>Inventory Asset Valuation (Total: ${Number(reportData.total_valuation || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })})</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Item Name</th>
@@ -636,8 +636,8 @@ function Reports() {
           {activeReport === "irrigation" && (
             <div className="page-content-section">
               <h2>Water & Irrigation Consumption (Total: {Number(reportData.total_litres || 0).toLocaleString()} L)</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Date</th>
@@ -669,8 +669,8 @@ function Reports() {
           {activeReport === "equipment" && (
             <div className="page-content-section">
               <h2>Equipment Utilization & Fuel Consumed</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Equipment Name</th>
@@ -704,8 +704,8 @@ function Reports() {
           {activeReport === "labour" && (
             <div className="page-content-section">
               <h2>Labour Attendance & Performance ({reportData.count || 0} workers)</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Worker Name</th>
@@ -737,8 +737,8 @@ function Reports() {
           {activeReport === "pest_disease" && (
             <div className="page-content-section">
               <h2>Pest & Disease Field Treatments ({reportData.count || 0} applications)</h2>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+              <div className="table-responsive">
+                <table className="ffms-table">
                   <thead>
                     <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                       <th style={{ padding: "10px 14px" }}>Date</th>

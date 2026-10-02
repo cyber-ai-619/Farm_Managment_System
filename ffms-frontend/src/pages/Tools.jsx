@@ -153,7 +153,7 @@ function Tools() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Equipment & Machinery Fleet</h1>
           <p>Manage tractors, harvesters, implements, fuel logs, and scheduled maintenance.</p>
@@ -162,15 +162,7 @@ function Tools() {
           <button
             type="button"
             onClick={() => setIsEqModalOpen(true)}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "var(--color-forest, #1E4632)",
-              color: "#FFF",
-              border: "1px solid var(--color-gold, #D4A54A)",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="btn-primary"
           >
             + Register Machinery
           </button>

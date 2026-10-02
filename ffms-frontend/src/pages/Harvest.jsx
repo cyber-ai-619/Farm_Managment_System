@@ -146,7 +146,7 @@ function Harvest() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Produce & Harvest Operations</h1>
           <p>Record crop harvest sessions, compute yield efficiency, track losses and batch quality.</p>
@@ -155,15 +155,7 @@ function Harvest() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "var(--color-forest, #1E4632)",
-              color: "#FFF",
-              border: "1px solid var(--color-gold, #D4A54A)",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="btn-primary"
           >
             + Log Harvest Record
           </button>
@@ -172,7 +164,7 @@ function Harvest() {
 
       {/* Farm Selector */}
       {farms.length > 1 && (
-        <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <label style={{ fontWeight: 600 }}>Active Farm:</label>
           <select
             value={selectedFarmId}
@@ -197,14 +189,7 @@ function Harvest() {
       )}
 
       {/* Overview Stat Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
+      <div className="kpi-grid" style={{ marginBottom: "24px" }}>
         <div className="content-card" style={{ padding: "16px", borderLeft: "4px solid var(--color-forest, #1E4632)" }}>
           <div style={{ fontSize: "12px", color: "#666", textTransform: "uppercase", fontWeight: 700 }}>
             Total Harvested
@@ -281,8 +266,8 @@ function Harvest() {
             )}
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+          <div className="table-responsive">
+            <table className="ffms-table">
               <thead>
                 <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                   <th style={{ padding: "12px 16px" }}>Date</th>
@@ -349,7 +334,7 @@ function Harvest() {
       {/* Log Harvest Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Log Crop Harvest Record">
         <form onSubmit={handleCreateHarvest} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div className="form-grid-2">
             <div>
               <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>
                 Field *
@@ -389,7 +374,7 @@ function Harvest() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+          <div className="form-grid-2">
             <div>
               <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>
                 Harvest Date *
@@ -421,7 +406,7 @@ function Harvest() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+          <div className="form-grid-3">
             <div>
               <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>
                 Yield (kg) *

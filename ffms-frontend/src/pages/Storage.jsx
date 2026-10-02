@@ -233,40 +233,24 @@ function Storage() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Storage & Post-Harvest Management</h1>
           <p>Warehouse climate facilities, lot batch tracking, spoilage write-offs, and stock dispatches.</p>
         </div>
         {canManage && (
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="page-header-actions">
             <button
               type="button"
               onClick={() => setIsWarehouseModalOpen(true)}
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "#FFF",
-                color: "var(--color-forest, #1E4632)",
-                border: "1px solid var(--color-forest, #1E4632)",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+              className="btn-secondary"
             >
               + Add Facility
             </button>
             <button
               type="button"
               onClick={() => setIsBatchModalOpen(true)}
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "var(--color-forest, #1E4632)",
-                color: "#FFF",
-                border: "1px solid var(--color-gold, #D4A54A)",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+              className="btn-primary"
             >
               + Store New Batch
             </button>
@@ -275,14 +259,7 @@ function Storage() {
       </div>
 
       {/* Metrics Banner */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
+      <div className="kpi-grid" style={{ marginBottom: "24px" }}>
         <div className="content-card" style={{ padding: "16px", borderLeft: "4px solid #1E4632" }}>
           <div style={{ fontSize: "12px", color: "#666", textTransform: "uppercase", fontWeight: 700 }}>
             Stored Stock Volume
@@ -325,7 +302,7 @@ function Storage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #E0E0E0", marginBottom: "20px" }}>
+      <div style={{ display: "flex", gap: "8px", borderBottom: "2px solid #E0E0E0", marginBottom: "20px", overflowX: "auto", whiteSpace: "nowrap", paddingBottom: "4px" }}>
         {[
           { id: "batches", label: `Storage Batches (${batches.length})` },
           { id: "warehouses", label: `Warehouses & Silos (${warehouses.length})` },
@@ -367,8 +344,8 @@ function Storage() {
                   <p>No stored produce batches currently logged.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <div className="table-responsive">
+                  <table className="ffms-table">
                     <thead>
                       <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                         <th style={{ padding: "12px 16px" }}>Batch #</th>
@@ -510,8 +487,8 @@ function Storage() {
                   <p>No storage dispatches recorded yet.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <div className="table-responsive">
+                  <table className="ffms-table">
                     <thead>
                       <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                         <th style={{ padding: "12px 16px" }}>Dispatch ID</th>

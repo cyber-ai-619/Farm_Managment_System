@@ -24,45 +24,42 @@ class AnalyticsController
 
         // 1. Farm & Land Overview
         $farmStmt = $this->pdo->prepare(
-            'SELECT f.id, f.name, f.total_area_ha,
+            "SELECT f.id, f.name, f.total_area_ha,
                     (SELECT COUNT(*) FROM fields WHERE farm_id = f.id) AS fields_count,
                     (SELECT COUNT(*) FROM plots p JOIN fields fl ON fl.id = p.field_id WHERE fl.farm_id = f.id) AS plots_count
              FROM farms f
-             WHERE f.id = :farm_id
-             LIMIT 1'
+             WHERE f.id = {$farmId}
+             LIMIT 1"
         );
-        $farmStmt->execute([':farm_id' => $farmId]);
+        $farmStmt->execute();
         $farmData = $farmStmt->fetch(PDO::FETCH_ASSOC) ?: [
             'id' => $farmId, 'name' => 'Farm', 'total_area_ha' => 0, 'fields_count' => 0, 'plots_count' => 0
         ];
 
         // 2. Crops & Harvest Summary
-        $cropStmt = $this->pdo->prepare(
-            'SELECT 
-                (SELECT COUNT(*) FROM planting_schedules ps JOIN fields f ON f.id = ps.field_id WHERE f.farm_id = :farm_id AND ps.status IN ("planted","growing")) AS active_plantings,
-                (SELECT COALESCE(SUM(quantity_kg), 0) FROM harvest_records WHERE farm_id = :farm_id AND YEAR(harvest_date) = YEAR(CURDATE())) AS ytd_harvest_kg,
-                (SELECT COALESCE(SUM(loss_kg), 0) FROM harvest_records WHERE farm_id = :farm_id AND YEAR(harvest_date) = YEAR(CURDATE())) AS ytd_harvest_loss_kg'
+        $cropStmt = $this->pdo->query(
+            "SELECT 
+                (SELECT COUNT(*) FROM planting_schedules ps JOIN fields f ON f.id = ps.field_id WHERE f.farm_id = {$farmId} AND ps.status IN ('planted','growing')) AS active_plantings,
+                (SELECT COALESCE(SUM(quantity_kg), 0) FROM harvest_records WHERE farm_id = {$farmId} AND YEAR(harvest_date) = YEAR(CURDATE())) AS ytd_harvest_kg,
+                (SELECT COALESCE(SUM(loss_kg), 0) FROM harvest_records WHERE farm_id = {$farmId} AND YEAR(harvest_date) = YEAR(CURDATE())) AS ytd_harvest_loss_kg"
         );
-        $cropStmt->execute([':farm_id' => $farmId]);
         $cropData = $cropStmt->fetch(PDO::FETCH_ASSOC);
 
         // 3. Livestock Summary
-        $lsStmt = $this->pdo->prepare(
-            'SELECT 
-                (SELECT COUNT(*) FROM animals WHERE farm_id = :farm_id AND status = "healthy") AS active_animals,
-                (SELECT COUNT(*) FROM treatments t JOIN animals a ON a.id = t.animal_id WHERE a.farm_id = :farm_id AND t.treatment_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)) AS recent_treatments'
+        $lsStmt = $this->pdo->query(
+            "SELECT 
+                (SELECT COUNT(*) FROM animals WHERE farm_id = {$farmId} AND status = 'active') AS active_animals,
+                (SELECT COUNT(*) FROM treatments t JOIN animals a ON a.id = t.animal_id WHERE a.farm_id = {$farmId} AND t.treatment_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)) AS recent_treatments"
         );
-        $lsStmt->execute([':farm_id' => $farmId]);
         $lsData = $lsStmt->fetch(PDO::FETCH_ASSOC);
 
         // 4. Financial Summary (YTD)
-        $finStmt = $this->pdo->prepare(
-            'SELECT 
-                (SELECT COALESCE(SUM(amount), 0) FROM income_records WHERE farm_id = :farm_id AND YEAR(date_received) = YEAR(CURDATE())) AS total_income,
-                (SELECT COALESCE(SUM(amount), 0) FROM expense_records WHERE farm_id = :farm_id AND YEAR(date_incurred) = YEAR(CURDATE())) AS total_expenses,
-                (SELECT COALESCE(SUM(balance_remaining), 0) FROM loans WHERE farm_id = :farm_id AND status = "active") AS active_loans_balance'
+        $finStmt = $this->pdo->query(
+            "SELECT 
+                (SELECT COALESCE(SUM(amount), 0) FROM income_records WHERE farm_id = {$farmId} AND YEAR(date_received) = YEAR(CURDATE())) AS total_income,
+                (SELECT COALESCE(SUM(amount), 0) FROM expense_records WHERE farm_id = {$farmId} AND YEAR(date_incurred) = YEAR(CURDATE())) AS total_expenses,
+                (SELECT COALESCE(SUM(balance_remaining), 0) FROM loans WHERE farm_id = {$farmId} AND status = 'active') AS active_loans_balance"
         );
-        $finStmt->execute([':farm_id' => $farmId]);
         $finData = $finStmt->fetch(PDO::FETCH_ASSOC);
         $income = (float) $finData['total_income'];
         $expenses = (float) $finData['total_expenses'];
@@ -70,58 +67,53 @@ class AnalyticsController
         $profitMargin = ($income > 0) ? round(($netProfit / $income) * 100, 2) : 0.0;
 
         // 5. Inventory & Equipment
-        $invStmt = $this->pdo->prepare(
-            'SELECT 
-                (SELECT COUNT(*) FROM inventory_items WHERE farm_id = :farm_id AND is_active = 1) AS total_inventory_items,
-                (SELECT COUNT(*) FROM inventory_items WHERE farm_id = :farm_id AND is_active = 1 AND quantity_on_hand <= reorder_level) AS low_stock_items,
-                (SELECT COUNT(*) FROM equipment WHERE farm_id = :farm_id) AS total_equipment,
-                (SELECT COUNT(*) FROM equipment WHERE farm_id = :farm_id AND status IN ("maintenance","repair")) AS equipment_in_service'
+        $invStmt = $this->pdo->query(
+            "SELECT 
+                (SELECT COUNT(*) FROM inventory_items WHERE farm_id = {$farmId} AND is_active = 1) AS total_inventory_items,
+                (SELECT COUNT(*) FROM inventory_items WHERE farm_id = {$farmId} AND is_active = 1 AND quantity_on_hand <= reorder_level) AS low_stock_items,
+                (SELECT COUNT(*) FROM equipment WHERE farm_id = {$farmId}) AS total_equipment,
+                (SELECT COUNT(*) FROM equipment WHERE farm_id = {$farmId} AND status IN ('maintenance','repair')) AS equipment_in_service"
         );
-        $invStmt->execute([':farm_id' => $farmId]);
         $invData = $invStmt->fetch(PDO::FETCH_ASSOC);
 
         // 6. Labour Summary
-        $labStmt = $this->pdo->prepare(
-            'SELECT 
-                (SELECT COUNT(*) FROM workers WHERE farm_id = :farm_id AND is_active = 1) AS active_workers,
-                (SELECT COUNT(*) FROM task_assignments WHERE farm_id = :farm_id AND status != "completed") AS pending_tasks'
+        $labStmt = $this->pdo->query(
+            "SELECT 
+                (SELECT COUNT(*) FROM workers WHERE farm_id = {$farmId} AND status = 'active') AS active_workers,
+                (SELECT COUNT(*) FROM task_assignments WHERE farm_id = {$farmId} AND status != 'completed') AS pending_tasks"
         );
-        $labStmt->execute([':farm_id' => $farmId]);
         $labData = $labStmt->fetch(PDO::FETCH_ASSOC);
 
         // 7. Storage Batches Summary
-        $stStmt = $this->pdo->prepare(
-            'SELECT 
+        $stStmt = $this->pdo->query(
+            "SELECT 
                 COALESCE(SUM(sb.quantity_remaining_kg), 0) AS total_stored_kg,
                 COALESCE(SUM(sb.quantity_remaining_kg * sb.unit_cost_estimated), 0) AS total_storage_value,
                 COALESCE(SUM(sb.spoilage_kg), 0) AS total_storage_spoilage_kg
              FROM storage_batches sb
              JOIN warehouses w ON w.id = sb.warehouse_id
-             WHERE w.farm_id = :farm_id AND sb.quantity_remaining_kg > 0'
+             WHERE w.farm_id = {$farmId} AND sb.quantity_remaining_kg > 0"
         );
-        $stStmt->execute([':farm_id' => $farmId]);
         $stData = $stStmt->fetch(PDO::FETCH_ASSOC);
 
         // 8. Latest Weather Observation
-        $weathStmt = $this->pdo->prepare(
-            'SELECT temperature_c, humidity_pct, rainfall_mm, condition_summary, observed_at
+        $weathStmt = $this->pdo->query(
+            "SELECT temperature_c, humidity_pct, rainfall_mm, condition_summary, observed_at
              FROM weather_observations
-             WHERE farm_id = :farm_id
+             WHERE farm_id = {$farmId}
              ORDER BY observed_at DESC
-             LIMIT 1'
+             LIMIT 1"
         );
-        $weathStmt->execute([':farm_id' => $farmId]);
         $weathData = $weathStmt->fetch(PDO::FETCH_ASSOC);
 
         // 9. Active Alerts
-        $altStmt = $this->pdo->prepare(
-            'SELECT COUNT(*) AS total_alerts,
-                    SUM(CASE WHEN severity = "critical" THEN 1 ELSE 0 END) AS critical_alerts,
-                    SUM(CASE WHEN severity = "warning" THEN 1 ELSE 0 END) AS warning_alerts
+        $altStmt = $this->pdo->query(
+            "SELECT COUNT(*) AS total_alerts,
+                    SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) AS critical_alerts,
+                    SUM(CASE WHEN severity = 'warning' THEN 1 ELSE 0 END) AS warning_alerts
              FROM alerts
-             WHERE farm_id = :farm_id AND is_dismissed = 0'
+             WHERE farm_id = {$farmId} AND is_dismissed = 0"
         );
-        $altStmt->execute([':farm_id' => $farmId]);
         $altData = $altStmt->fetch(PDO::FETCH_ASSOC);
 
         respond([

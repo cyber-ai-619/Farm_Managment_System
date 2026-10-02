@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import alertService from "../services/alertService";
 
-function Navbar() {
+function Navbar({ onToggleSidebar }) {
   const navigate = useNavigate();
   const { user, role, logout } = useAuth();
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
@@ -47,6 +47,14 @@ function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar-left">
+        <button
+          type="button"
+          className="mobile-menu-btn"
+          onClick={onToggleSidebar}
+          aria-label="Toggle navigation menu"
+        >
+          ☰
+        </button>
         <div className="navbar-brand">
           <Logo className="navbar-logo" />
           <span>Farm Management System</span>
@@ -94,22 +102,23 @@ function Navbar() {
         <span className="welcome-text">
           <span className="welcome-label">Welcome</span>{" "}
           <span className="user-name">{user?.name || "User"}</span>
-          <span
-            style={{
-              marginLeft: "0.5rem",
-              padding: "0.2rem 0.6rem",
-              borderRadius: "12px",
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              backgroundColor: "rgba(212, 165, 74, 0.2)",
-              color: "var(--color-gold, #D4A54A)",
-              border: "1px solid rgba(212, 165, 74, 0.4)",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
-            {formatRole(role)}
-          </span>
+        </span>
+        <span
+          style={{
+            fontFamily: "'Manrope', 'Segoe UI', sans-serif",
+            fontStyle: "normal",
+            padding: "0.25rem 0.65rem",
+            borderRadius: "12px",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            backgroundColor: "rgba(212, 165, 74, 0.2)",
+            color: "var(--color-gold, #D4A54A)",
+            border: "1px solid rgba(212, 165, 74, 0.4)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {formatRole(role)}
         </span>
         <button type="button" onClick={handleLogout}>
           Logout

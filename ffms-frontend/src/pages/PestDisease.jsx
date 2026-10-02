@@ -113,24 +113,24 @@ function PestDisease() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Pest & Plant Disease Management</h1>
           <p>Scout field infestations, diagnose fungal/viral infections, and record chemical and bio-control treatments.</p>
         </div>
         {canManage && (
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="page-header-actions">
             <button
               type="button"
               onClick={() => setIsPestModalOpen(true)}
-              style={{ padding: "8px 14px", backgroundColor: "#7A4A52", color: "#FFF", border: "none", borderRadius: "6px", fontWeight: 600, cursor: "pointer" }}
+              className="btn-secondary"
             >
               + Add to Pest Catalog
             </button>
             <button
               type="button"
               onClick={() => setIsScoutingModalOpen(true)}
-              style={{ padding: "8px 16px", backgroundColor: "var(--color-forest)", color: "#FFF", border: "1px solid var(--color-gold)", borderRadius: "6px", fontWeight: 600, cursor: "pointer" }}
+              className="btn-primary"
             >
               + Log Scouting Report
             </button>
@@ -151,8 +151,8 @@ function PestDisease() {
       )}
 
       {/* Tabs */}
-      <div className="content-card" style={{ padding: "8px 16px", marginBottom: "20px" }}>
-        <div style={{ display: "flex", gap: "12px" }}>
+      <div className="content-card" style={{ padding: "8px 16px", marginBottom: "20px", overflowX: "auto" }}>
+        <div style={{ display: "flex", gap: "12px", whiteSpace: "nowrap" }}>
           {[
             { id: "scouting", label: `Field Scouting Reports (${scoutingLogs.length})` },
             { id: "catalog", label: `Pest & Disease Catalog (${pests.length})` },

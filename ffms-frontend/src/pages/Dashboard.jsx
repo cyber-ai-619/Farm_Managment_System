@@ -103,11 +103,11 @@ function Dashboard() {
             </Link>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginTop: "32px" }}>
+          <div className="grid-2-col" style={{ marginTop: "32px" }}>
             {/* Quick Actions Card */}
             <div className="content-card">
               <h4 style={{ fontSize: "1.1rem", marginBottom: "14px" }}>⚡ Quick Operations</h4>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div className="form-grid-2">
                 <Link
                   to="/farm"
                   style={{

@@ -193,7 +193,7 @@ function Farm() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Farm & Land Management</h1>
           <p>Register and manage your farm properties, parcels, fields, and soil health.</p>
@@ -202,15 +202,7 @@ function Farm() {
           <button
             type="button"
             onClick={() => handleOpenFarmModal()}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "var(--color-forest, #1E4632)",
-              color: "#FFF",
-              border: "1px solid var(--color-gold, #D4A54A)",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
+            className="btn-primary"
           >
             + Register New Farm
           </button>
@@ -229,7 +221,7 @@ function Farm() {
           <p>Get started by clicking "+ Register New Farm" to register your first farm estate.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: "24px", alignItems: "start" }}>
+        <div className="master-detail-layout">
           {/* Farms Sidebar List */}
           <div>
             <h3 style={{ fontSize: "1.1rem", color: "var(--color-forest)", marginBottom: "12px" }}>Your Farm Estates ({farms.length})</h3>

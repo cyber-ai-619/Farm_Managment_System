@@ -115,24 +115,24 @@ function Irrigation() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div className="page-header">
         <div>
           <h1>Irrigation & Water Management</h1>
           <p>Monitor water reservoirs, boreholes, drip lines, and irrigation delivery systems.</p>
         </div>
         {canManage && (
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div className="page-header-actions">
             <button
               type="button"
               onClick={() => setIsSourceModalOpen(true)}
-              style={{ padding: "8px 14px", backgroundColor: "#7A4A52", color: "#FFF", border: "none", borderRadius: "6px", fontWeight: 600, cursor: "pointer" }}
+              className="btn-secondary"
             >
               + Add Water Source
             </button>
             <button
               type="button"
               onClick={() => setIsSystemModalOpen(true)}
-              style={{ padding: "8px 16px", backgroundColor: "var(--color-forest)", color: "#FFF", border: "1px solid var(--color-gold)", borderRadius: "6px", fontWeight: 600, cursor: "pointer" }}
+              className="btn-primary"
             >
               + Add Irrigation Line
             </button>
@@ -141,7 +141,7 @@ function Irrigation() {
       </div>
 
       {/* Farm Selector Bar */}
-      <div className="content-card" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", marginBottom: "20px" }}>
+      <div className="content-card" style={{ display: "flex", alignItems: "center", gap: "14px", padding: "14px 20px", marginBottom: "20px", flexWrap: "wrap" }}>
         <label style={{ fontWeight: 700, color: "var(--color-forest)" }}>Select Farm Estate:</label>
         <select
           value={selectedFarmId}

@@ -131,25 +131,18 @@ function Alerts() {
 
   return (
     <div className="page-wrapper">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
+      <div className="page-header">
         <div>
           <h1>System Alerts & Real-Time Monitoring</h1>
           <p>Automated threshold monitors, risk alerts, machine service alerts, and incident broadcasts.</p>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div className="page-header-actions">
           <button
             type="button"
             disabled={scanning}
             onClick={handleRunScan}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: scanning ? "#DDD" : "#FFF",
-              color: "var(--color-forest, #1E4632)",
-              border: "1px solid var(--color-forest, #1E4632)",
-              borderRadius: "8px",
-              fontWeight: 600,
-              cursor: scanning ? "not-allowed" : "pointer",
-            }}
+            className="btn-secondary"
+            style={{ opacity: scanning ? 0.7 : 1, cursor: scanning ? "not-allowed" : "pointer" }}
           >
             {scanning ? "Scanning System..." : "🔍 Run System Scan"}
           </button>
@@ -157,15 +150,7 @@ function Alerts() {
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "var(--color-forest, #1E4632)",
-                color: "#FFF",
-                border: "1px solid var(--color-gold, #D4A54A)",
-                borderRadius: "8px",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
+              className="btn-primary"
             >
               + Broadcast Alert
             </button>
@@ -175,7 +160,7 @@ function Alerts() {
 
       {/* Farm Selector */}
       {farms.length > 1 && (
-        <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
           <label style={{ fontWeight: 600 }}>Active Farm:</label>
           <select
             value={selectedFarmId}
@@ -192,14 +177,7 @@ function Alerts() {
       )}
 
       {/* KPI Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
+      <div className="kpi-grid" style={{ marginBottom: "24px" }}>
         <div className="content-card" style={{ padding: "16px", borderLeft: "4px solid #C0392B" }}>
           <div style={{ fontSize: "12px", color: "#666", textTransform: "uppercase", fontWeight: 700 }}>
             Critical Alerts
@@ -396,8 +374,8 @@ function Alerts() {
                   <p>No historical alert logs archived.</p>
                 </div>
               ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <div className="table-responsive">
+                  <table className="ffms-table">
                     <thead>
                       <tr style={{ borderBottom: "2px solid #E0E0E0", backgroundColor: "#F9FBF9" }}>
                         <th style={{ padding: "12px 16px" }}>Time</th>

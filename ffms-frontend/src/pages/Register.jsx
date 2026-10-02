@@ -24,6 +24,8 @@ function Register() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [developerDetails, setDeveloperDetails] = useState(null);
+  const [showDevDetails, setShowDevDetails] = useState(false);
 
   const isValidEmail = (emailStr) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr);
@@ -32,6 +34,7 @@ function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     setErrorMessage("");
+    setDeveloperDetails(null);
 
     const trimmedName = name.trim();
     const trimmedEmail = email.trim().toLowerCase();
@@ -67,6 +70,9 @@ function Register() {
       navigate("/dashboard");
     } catch (err) {
       setErrorMessage(err.message || "Registration failed. Please try again.");
+      if (err.developerDetails) {
+        setDeveloperDetails(err.developerDetails);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -86,15 +92,84 @@ function Register() {
               backgroundColor: "rgba(192, 57, 43, 0.12)",
               color: "#C0392B",
               border: "1px solid rgba(192, 57, 43, 0.3)",
-              padding: "0.75rem 1rem",
+              padding: "0.85rem 1rem",
               borderRadius: "8px",
-              marginBottom: "1rem",
+              marginBottom: "1.25rem",
               fontSize: "0.9rem",
-              textAlign: "center",
-              fontWeight: 500,
+              textAlign: "left",
             }}
           >
-            {errorMessage}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+              <span style={{ fontSize: "1.1rem", lineHeight: "1" }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600 }}>{errorMessage}</div>
+
+                {/* Developer Mode Diagnostics Toggle */}
+                {import.meta.env.DEV && developerDetails && (
+                  <div style={{ marginTop: "8px", borderTop: "1px dashed rgba(192, 57, 43, 0.25)", paddingTop: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowDevDetails((prev) => !prev)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        color: "#8B251B",
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      {showDevDetails ? "▲ Hide Technical Details" : "▼ Developer Diagnostics (Dev Mode Only)"}
+                    </button>
+
+                    {showDevDetails && (
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          padding: "8px",
+                          backgroundColor: "#FFF",
+                          borderRadius: "4px",
+                          border: "1px solid #DDD",
+                          color: "#333",
+                          fontSize: "0.75rem",
+                          fontFamily: "monospace",
+                          lineHeight: "1.4",
+                          overflowX: "auto",
+                        }}
+                      >
+                        <div>
+                          <strong>Status:</strong> {developerDetails.status || "0 (Connection Refused / Offline)"}
+                        </div>
+                        <div>
+                          <strong>Endpoint:</strong> {developerDetails.endpoint || developerDetails.url}
+                        </div>
+                        {developerDetails.rawMessage && (
+                          <div>
+                            <strong>Raw Message:</strong> {developerDetails.rawMessage}
+                          </div>
+                        )}
+                        {developerDetails.debug && (
+                          <div style={{ marginTop: "4px" }}>
+                            <strong>Server Trace:</strong>
+                            <pre style={{ margin: 0, fontSize: "0.7rem", whiteSpace: "pre-wrap" }}>
+                              {JSON.stringify(developerDetails.debug, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        <div style={{ marginTop: "6px", color: "#666", fontStyle: "italic" }}>
+                          ℹ️ Full trace logged in Browser Console (Press F12).
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -105,7 +180,10 @@ function Register() {
               id="register-name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errorMessage) setErrorMessage("");
+              }}
               placeholder="e.g. Jane Doe"
               disabled={submitting}
               required
@@ -118,8 +196,11 @@ function Register() {
               id="register-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. jane@farm.com"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errorMessage) setErrorMessage("");
+              }}
+              placeholder="e.g. farmer@estate.com"
               disabled={submitting}
               required
             />
@@ -158,7 +239,10 @@ function Register() {
                 id="register-password"
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errorMessage) setErrorMessage("");
+                }}
                 placeholder="Create password"
                 disabled={submitting}
                 minLength={8}
@@ -183,7 +267,10 @@ function Register() {
                 id="register-confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (errorMessage) setErrorMessage("");
+                }}
                 placeholder="Confirm your password"
                 disabled={submitting}
                 minLength={8}
