@@ -13,7 +13,7 @@ import api from "./api";
 export const weatherService = {
   async getCurrent(farmId) {
     const res = await api.get(`/api/weather/current/${farmId}`);
-    return res.data;
+    return res;
   },
 
   async getForecast(farmId) {
