@@ -42,11 +42,25 @@ function getPdo(): PDO
 
         $dsn = "mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4";
 
-        $pdo = new PDO($dsn, $user, $pass, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
+        try {
+            $pdo = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+            ]);
+        } catch (PDOException $e) {
+            respond([
+                'success'    => false,
+                'message'    => 'Database connection failed. Please ensure MySQL is running in XAMPP.',
+                'error_code' => 'DATABASE_UNAVAILABLE',
+                'debug'      => [
+                    'error'    => $e->getMessage(),
+                    'host'     => $host,
+                    'port'     => $port,
+                    'database' => $dbname,
+                ],
+            ], 503);
+        }
     }
 
     return $pdo;

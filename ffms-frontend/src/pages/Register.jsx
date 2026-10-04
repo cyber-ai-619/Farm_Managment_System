@@ -1,182 +1,251 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
+import { useAuth } from "../hooks/useAuth";
 
-const zambianProvinces = [
-  "Central",
-  "Copperbelt",
-  "Eastern",
-  "Luapula",
-  "Lusaka",
-  "Muchinga",
-  "Northern",
-  "North-Western",
-  "Southern",
-  "Western",
+const ROLES = [
+  { id: 2, label: "Farm Owner" },
+  { id: 3, label: "Farm Manager" },
+  { id: 4, label: "Agronomist" },
+  { id: 5, label: "Worker / Operator" },
+  { id: 6, label: "Accountant / Auditor" },
 ];
 
 function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [location, setLocation] = useState("");
-  const [farmerType, setFarmerType] = useState("");
-  const [phone, setPhone] = useState("");
-  const [physicalAddress, setPhysicalAddress] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [roleId, setRoleId] = useState(2); // Default to Farm Owner for easy onboarding
   const [showPassword, setShowPassword] = useState(false);
-  const [status, setStatus] = useState(null);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [developerDetails, setDeveloperDetails] = useState(null);
+  const [showDevDetails, setShowDevDetails] = useState(false);
 
-  const handleRegister = (e) => {
+  const isValidEmail = (emailStr) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr);
+  };
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    setStatus(null);
+    setErrorMessage("");
+    setDeveloperDetails(null);
 
-    if (!name || !email || !password || !location || !farmerType || !phone || !physicalAddress) {
-      setStatus({ type: "error", message: "Please complete all registration fields." });
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedName || !trimmedEmail || !password || !confirmPassword) {
+      setErrorMessage("Please fill in all required fields.");
       return;
     }
 
-    if (!/^\+260\d{9}$/.test(phone.trim())) {
-      setStatus({ type: "error", message: "Phone number must start with +260 and contain 9 digits after it." });
+    if (!isValidEmail(trimmedEmail)) {
+      setErrorMessage("Please enter a valid email address (e.g. farmer@estate.com).");
       return;
     }
 
     if (password.length < 8) {
-      setStatus({ type: "error", message: "Password must be at least 8 characters long." });
+      setErrorMessage("Password must be at least 8 characters long.");
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("ffms_users") || "{}");
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (users[normalizedEmail]) {
-      setStatus({ type: "error", message: "An account with this email already exists." });
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match. Please re-enter your password.");
       return;
     }
 
-    users[normalizedEmail] = {
-      name: name.trim(),
-      location: location.trim(),
-      farmerType,
-      phone: phone.trim(),
-      physicalAddress: physicalAddress.trim(),
-      password,
-    };
-    localStorage.setItem("ffms_users", JSON.stringify(users));
-    setStatus({ type: "success", message: "Registration successful. You can now log in." });
-    setTimeout(() => navigate("/"), 900);
+    try {
+      setSubmitting(true);
+      await register({
+        name: trimmedName,
+        email: trimmedEmail,
+        password,
+        role_id: Number(roleId),
+      });
+      navigate("/dashboard");
+    } catch (err) {
+      setErrorMessage(err.message || "Registration failed. Please try again.");
+      if (err.developerDetails) {
+        setDeveloperDetails(err.developerDetails);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <main className="auth-page">
-      <div className="auth-shell">
-        <section className="auth-card">
+      <section className="auth-card">
         <Logo className="auth-logo" />
         <p className="auth-brand">AgriHud</p>
-        <h1>Create your account</h1>
+        <h1>Create FFMS Account</h1>
+        <p>Register for the Farm Management System.</p>
 
-        <p>Start managing your farm with a clearer view of every season.</p>
+        {errorMessage && (
+          <div
+            style={{
+              backgroundColor: "rgba(192, 57, 43, 0.12)",
+              color: "#C0392B",
+              border: "1px solid rgba(192, 57, 43, 0.3)",
+              padding: "0.85rem 1rem",
+              borderRadius: "8px",
+              marginBottom: "1.25rem",
+              fontSize: "0.9rem",
+              textAlign: "left",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+              <span style={{ fontSize: "1.1rem", lineHeight: "1" }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600 }}>{errorMessage}</div>
 
-        {status && (
-          <p className={`form-message ${status.type}`} role="alert">
-            {status.message}
-          </p>
+                {/* Developer Mode Diagnostics Toggle */}
+                {import.meta.env.DEV && developerDetails && (
+                  <div style={{ marginTop: "8px", borderTop: "1px dashed rgba(192, 57, 43, 0.25)", paddingTop: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowDevDetails((prev) => !prev)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        color: "#8B251B",
+                        fontSize: "0.78rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                    >
+                      {showDevDetails ? "▲ Hide Technical Details" : "▼ Developer Diagnostics (Dev Mode Only)"}
+                    </button>
+
+                    {showDevDetails && (
+                      <div
+                        style={{
+                          marginTop: "6px",
+                          padding: "8px",
+                          backgroundColor: "#FFF",
+                          borderRadius: "4px",
+                          border: "1px solid #DDD",
+                          color: "#333",
+                          fontSize: "0.75rem",
+                          fontFamily: "monospace",
+                          lineHeight: "1.4",
+                          overflowX: "auto",
+                        }}
+                      >
+                        <div>
+                          <strong>Status:</strong> {developerDetails.status || "0 (Connection Refused / Offline)"}
+                        </div>
+                        <div>
+                          <strong>Endpoint:</strong> {developerDetails.endpoint || developerDetails.url}
+                        </div>
+                        {developerDetails.rawMessage && (
+                          <div>
+                            <strong>Raw Message:</strong> {developerDetails.rawMessage}
+                          </div>
+                        )}
+                        {developerDetails.debug && (
+                          <div style={{ marginTop: "4px" }}>
+                            <strong>Server Trace:</strong>
+                            <pre style={{ margin: 0, fontSize: "0.7rem", whiteSpace: "pre-wrap" }}>
+                              {JSON.stringify(developerDetails.debug, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+                        <div style={{ marginTop: "6px", color: "#666", fontStyle: "italic" }}>
+                          ℹ️ Full trace logged in Browser Console (Press F12).
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         <form onSubmit={handleRegister}>
           <div className="form-field">
-            <label htmlFor="register-name">Full Name</label>
+            <label htmlFor="register-name">Full Name *</label>
             <input
               id="register-name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your full name"
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errorMessage) setErrorMessage("");
+              }}
+              placeholder="e.g. Jane Doe"
+              disabled={submitting}
               required
             />
           </div>
 
           <div className="form-field">
-            <label htmlFor="register-email">Email</label>
+            <label htmlFor="register-email">Email Address *</label>
             <input
               id="register-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errorMessage) setErrorMessage("");
+              }}
+              placeholder="e.g. farmer@estate.com"
+              disabled={submitting}
               required
             />
           </div>
 
           <div className="form-field">
-            <label htmlFor="register-phone">Phone Number</label>
-            <input
-              id="register-phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+260  XXX XXX XXX"
-              pattern="\+260[0-9]{9}"
-              title="Enter a phone number starting with +260 followed by 9 digits"
-              required
-            />
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="register-location">Location</label>
+            <label htmlFor="register-role">System Role *</label>
             <select
-              id="register-location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
+              id="register-role"
+              value={roleId}
+              onChange={(e) => setRoleId(e.target.value)}
+              disabled={submitting}
+              style={{
+                width: "100%",
+                padding: "0.75rem 1rem",
+                borderRadius: "8px",
+                border: "1px solid #d4a54a40",
+                backgroundColor: "var(--color-cream, #F5EAD0)",
+                color: "var(--color-charcoal, #2B2622)",
+                fontSize: "0.95rem",
+                outline: "none",
+              }}
             >
-              <option value="" disabled>Select your province</option>
-              {zambianProvinces.map((province) => (
-                <option key={province} value={province}>{province}</option>
+              {ROLES.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.label}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="form-field">
-            <label htmlFor="register-physical-address">Physical Address</label>
-            <textarea
-              id="register-physical-address"
-              value={physicalAddress}
-              onChange={(e) => setPhysicalAddress(e.target.value)}
-              placeholder="Enter your physical address"
-              required
-              rows="3"
-            />
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="register-farmer-type">Type of Farmer</label>
-            <select
-              id="register-farmer-type"
-              value={farmerType}
-              onChange={(e) => setFarmerType(e.target.value)}
-              required
-            >
-              <option value="" disabled>Select your farmer type</option>
-              <option value="Small-scale farmer">Small-scale farmer</option>
-              <option value="Commercial farmer">Commercial farmer</option>
-              <option value="Livestock farmer">Livestock farmer</option>
-              <option value="Mixed farmer">Mixed farmer</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="register-password">Password</label>
+            <label htmlFor="register-password">Password (min 8 characters) *</label>
             <div className="password-field">
               <input
                 id="register-password"
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create a password"
-                minLength="8"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errorMessage) setErrorMessage("");
+                }}
+                placeholder="Create password"
+                disabled={submitting}
+                minLength={8}
                 required
               />
               <button
@@ -184,30 +253,56 @@ function Register() {
                 type="button"
                 onClick={() => setShowPassword((visible) => !visible)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
+                disabled={submitting}
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
           </div>
 
-          <button className="auth-button" type="submit">Register</button>
+          <div className="form-field">
+            <label htmlFor="register-confirm-password">Confirm Password *</label>
+            <div className="password-field">
+              <input
+                id="register-confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (errorMessage) setErrorMessage("");
+                }}
+                placeholder="Confirm your password"
+                disabled={submitting}
+                minLength={8}
+                required
+              />
+              <button
+                className="password-toggle"
+                type="button"
+                onClick={() => setShowConfirmPassword((visible) => !visible)}
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                disabled={submitting}
+              >
+                {showConfirmPassword ? "Hide" : "Show"}
+              </button>
+            </div>
+          </div>
+
+          {password && confirmPassword && password !== confirmPassword && (
+            <p style={{ color: "#C0392B", fontSize: "0.82rem", marginTop: "-0.5rem", marginBottom: "0.75rem" }}>
+              ⚠️ Passwords do not match
+            </p>
+          )}
+
+          <button className="auth-button" type="submit" disabled={submitting}>
+            {submitting ? "Creating Account..." : "Create Account"}
+          </button>
         </form>
 
         <p className="auth-link">
           Already have an account? <Link to="/">Login here</Link>
         </p>
-        </section>
-
-        <aside className="auth-visual" aria-label="Farm landscape">
-          <div className="auth-visual-content">
-            <span className="auth-kicker">A better season starts here</span>
-            <h2>From first planting to final harvest.</h2>
-            <p>One trusted place to plan, monitor, and grow your operation with confidence.</p>
-            <span className="auth-visual-line" aria-hidden="true" />
-            <span className="auth-location">Farm operations, beautifully connected</span>
-          </div>
-        </aside>
-      </div>
+      </section>
     </main>
   );
 }
