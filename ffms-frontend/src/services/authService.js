@@ -1,5 +1,12 @@
 import api from "./api";
 
+function cacheUser(user) {
+  if (!user) return;
+  const cachedUser = { ...user };
+  delete cachedUser.profile_photo;
+  localStorage.setItem("ffms_user", JSON.stringify(cachedUser));
+}
+
 /**
  * Authentication Service
  *
@@ -7,6 +14,8 @@ import api from "./api";
  *   POST /api/auth/login
  *   POST /api/auth/register
  *   GET  /api/auth/me
+ *   PUT  /api/auth/me
+ *   PUT  /api/auth/password
  *   POST /api/auth/logout
  */
 export const authService = {
@@ -19,7 +28,7 @@ export const authService = {
     const data = await api.post("/api/auth/login", { email, password });
     if (data.token) {
       localStorage.setItem("ffms_token", data.token);
-      localStorage.setItem("ffms_user", JSON.stringify(data.user));
+      cacheUser(data.user);
     }
     return data;
   },
@@ -37,7 +46,7 @@ export const authService = {
     });
     if (data.token) {
       localStorage.setItem("ffms_token", data.token);
-      localStorage.setItem("ffms_user", JSON.stringify(data.user));
+      cacheUser(data.user);
     }
     return data;
   },
@@ -48,17 +57,21 @@ export const authService = {
   async me() {
     const data = await api.get("/api/auth/me");
     if (data.user) {
-      localStorage.setItem("ffms_user", JSON.stringify(data.user));
+      cacheUser(data.user);
     }
     return data.user;
   },
 
-  async updateProfile({ name }) {
-    const data = await api.put("/api/auth/me", { name });
+  async updateProfile(profile) {
+    const data = await api.put("/api/auth/me", profile);
     if (data.user) {
-      localStorage.setItem("ffms_user", JSON.stringify(data.user));
+      cacheUser(data.user);
     }
     return data.user;
+  },
+
+  async changePassword({ current_password, new_password }) {
+    return api.put("/api/auth/password", { current_password, new_password });
   },
 
   /**

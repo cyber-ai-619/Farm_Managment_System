@@ -3,10 +3,11 @@ import Logo from "./Logo";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import alertService from "../services/alertService";
+import AccountMenu from "./AccountMenu";
 
 function Navbar({ onToggleSidebar }) {
   const navigate = useNavigate();
-  const { user, role, logout } = useAuth();
+  const { role, logout } = useAuth();
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
 
   useEffect(() => {
@@ -99,11 +100,7 @@ function Navbar({ onToggleSidebar }) {
           )}
         </Link>
 
-        <span className="welcome-text">
-          <span className="welcome-label">Welcome</span>{" "}
-          <span className="user-name">{user?.name || "User"}</span>
-        </span>
-        <Link className="navbar-profile-link" to="/profile">Profile</Link>
+        <AccountMenu />
         <span
           style={{
             fontFamily: "'Manrope', 'Segoe UI', sans-serif",

@@ -80,6 +80,11 @@ if ($requestUri === '/api/auth/me' && $requestMethod === 'PUT') {
     $ctrl->updateMe();
 }
 
+if ($requestUri === '/api/auth/password' && $requestMethod === 'PUT') {
+    $ctrl = new AuthController(getPdo());
+    $ctrl->changePassword();
+}
+
 if ($requestUri === '/api/auth/logout' && $requestMethod === 'POST') {
     $ctrl = new AuthController(getPdo());
     $ctrl->logout();

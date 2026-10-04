@@ -42,6 +42,9 @@ CREATE TABLE IF NOT EXISTS users (
     email         VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role_id       INT UNSIGNED NOT NULL DEFAULT 5, -- defaults to 'worker'
+    phone         VARCHAR(30) NULL,
+    location      VARCHAR(255) NULL,
+    profile_photo MEDIUMTEXT NULL,
     is_active     TINYINT(1)   NOT NULL DEFAULT 1,
     created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

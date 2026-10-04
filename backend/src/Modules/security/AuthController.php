@@ -161,20 +161,50 @@ class AuthController
     {
         $payload = requireAuth();
         $body = $this->jsonBody();
-        $name = trim($body['name'] ?? '');
-        $nameLength = preg_match_all('/./us', $name);
-
-        if ($nameLength === false || $name === '' || preg_match('/[\r\n]/', $name) || $nameLength > 150) {
-            respond(['success' => false, 'message' => 'Name must be between 1 and 150 characters.'], 422);
-        }
-
         $userId = (int) $payload['sub'];
-        $this->users->updateName($userId, $name);
-        $user = $this->users->findById($userId);
+        $currentUser = $this->users->findById($userId);
 
-        if ($user === null) {
+        if ($currentUser === null) {
             respond(['success' => false, 'message' => 'User not found.'], 404);
         }
+
+        $name = trim((string) ($body['name'] ?? $currentUser['name']));
+        $email = strtolower(trim((string) ($body['email'] ?? $currentUser['email'])));
+        $phone = trim((string) ($body['phone'] ?? $currentUser['phone'] ?? ''));
+        $location = trim((string) ($body['location'] ?? $currentUser['location'] ?? ''));
+        $nameLength = preg_match_all('/./us', $name);
+        $phoneLength = preg_match_all('/./us', $phone);
+        $locationLength = preg_match_all('/./us', $location);
+
+        if ($nameLength === false || $name === '' || $nameLength > 150) {
+            respond(['success' => false, 'message' => 'Name must be between 1 and 150 characters.'], 422);
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 255) {
+            respond(['success' => false, 'message' => 'Enter a valid email address.'], 422);
+        }
+        if ($this->users->emailExistsForOtherUser($email, $userId)) {
+            respond(['success' => false, 'message' => 'That email address is already in use.'], 409);
+        }
+        if ($phoneLength === false || $phoneLength > 30 || ($phone !== '' && !preg_match('/^[0-9+().\-\s]{7,30}$/', $phone))) {
+            respond(['success' => false, 'message' => 'Enter a valid phone number.'], 422);
+        }
+        if ($locationLength === false || $locationLength > 255) {
+            respond(['success' => false, 'message' => 'Location must be 255 characters or fewer.'], 422);
+        }
+
+        $profilePhoto = $currentUser['profile_photo'];
+        if (array_key_exists('profile_photo', $body)) {
+            $profilePhoto = $this->validatedProfilePhoto($body['profile_photo']);
+        }
+
+        $this->users->updateProfile($userId, [
+            'name' => $name,
+            'email' => $email,
+            'phone' => $phone !== '' ? $phone : null,
+            'location' => $location !== '' ? $location : null,
+            'profile_photo' => $profilePhoto,
+        ]);
+        $user = $this->users->findById($userId);
 
         $this->audit->log('user.profile_updated', $userId, 'users', $userId);
 
@@ -183,6 +213,56 @@ class AuthController
             'message' => 'Profile updated successfully.',
             'user' => $this->publicUser($user),
         ]);
+    }
+
+    public function changePassword(): void
+    {
+        $payload = requireAuth();
+        $body = $this->jsonBody();
+        $userId = (int) $payload['sub'];
+        $user = $this->users->findForPasswordChange($userId);
+
+        if ($user === null) {
+            respond(['success' => false, 'message' => 'User not found.'], 404);
+        }
+
+        $currentPassword = (string) ($body['current_password'] ?? '');
+        $newPassword = (string) ($body['new_password'] ?? '');
+        if (!$this->users->verifyPassword($currentPassword, $user['password_hash'])) {
+            respond(['success' => false, 'message' => 'Current password is incorrect.'], 422);
+        }
+        if (strlen($newPassword) < 8 || strlen($newPassword) > 72) {
+            respond(['success' => false, 'message' => 'New password must be between 8 and 72 characters.'], 422);
+        }
+        if ($this->users->verifyPassword($newPassword, $user['password_hash'])) {
+            respond(['success' => false, 'message' => 'Choose a password you have not used before.'], 422);
+        }
+
+        $this->users->updatePassword($userId, $newPassword);
+        $this->audit->log('user.password_changed', $userId, 'users', $userId);
+        respond(['success' => true, 'message' => 'Password changed successfully.']);
+    }
+
+    private function validatedProfilePhoto(mixed $photo): ?string
+    {
+        if ($photo === null || $photo === '') {
+            return null;
+        }
+        if (!is_string($photo) || !preg_match('/^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+\/=]+)$/', $photo, $matches)) {
+            respond(['success' => false, 'message' => 'Profile photo must be a JPG, PNG, or WEBP image.'], 422);
+        }
+
+        $imageData = base64_decode($matches[2], true);
+        if ($imageData === false || strlen($imageData) > 5 * 1024 * 1024) {
+            respond(['success' => false, 'message' => 'Profile photo must be 5 MB or smaller.'], 422);
+        }
+        $imageInfo = getimagesizefromstring($imageData);
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if ($imageInfo === false || !in_array($imageInfo['mime'], $allowedTypes, true)) {
+            respond(['success' => false, 'message' => 'The selected file is not a supported image.'], 422);
+        }
+
+        return 'data:' . $imageInfo['mime'] . ';base64,' . base64_encode($imageData);
     }
 
     // ---------------------------------------------------------------

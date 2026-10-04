@@ -103,6 +103,8 @@ export function AuthProvider({ children }) {
     return updatedUser;
   }, []);
 
+  const changePassword = useCallback((passwords) => authService.changePassword(passwords), []);
+
   const value = {
     user,
     token,
@@ -115,6 +117,7 @@ export function AuthProvider({ children }) {
     logout,
     refreshUser,
     updateProfile,
+    changePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
