@@ -27,6 +27,7 @@ function Alerts() {
     category: "general",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   // Load farms
   const fetchFarms = useCallback(async () => {
@@ -109,6 +110,7 @@ function Alerts() {
   const handleCreateAlert = async (e) => {
     e.preventDefault();
     if (!alertForm.title.trim() || !alertForm.message.trim()) return;
+    setCreateError("");
     try {
       setSubmitting(true);
       await alertService.createAlert({ ...alertForm, farm_id: selectedFarmId });
@@ -116,7 +118,7 @@ function Alerts() {
       setAlertForm((prev) => ({ ...prev, title: "", message: "" }));
       await loadAlerts(selectedFarmId);
     } catch (err) {
-      alert(err.message || "Failed to broadcast alert.");
+      setCreateError(err.message || "Failed to broadcast alert. Check your connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -428,8 +430,13 @@ function Alerts() {
       )}
 
       {/* Broadcast Alert Modal */}
-      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Broadcast Farm Alert">
+      <Modal isOpen={isCreateModalOpen} onClose={() => { setIsCreateModalOpen(false); setCreateError(""); }} title="Broadcast Farm Alert">
         <form onSubmit={handleCreateAlert} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {createError && (
+            <div role="alert" style={{ padding: "10px 12px", border: "1px solid rgba(192, 57, 43, 0.28)", borderRadius: "6px", background: "rgba(192, 57, 43, 0.08)", color: "#8b3526", fontSize: "13px", lineHeight: 1.45 }}>
+              {createError}
+            </div>
+          )}
           <div>
             <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Alert Title *</label>
             <input
@@ -437,7 +444,7 @@ function Alerts() {
               required
               placeholder="e.g. Frost Warning for Sector A"
               value={alertForm.title}
-              onChange={(e) => setAlertForm({ ...alertForm, title: e.target.value })}
+              onChange={(e) => { setCreateError(""); setAlertForm({ ...alertForm, title: e.target.value }); }}
               style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
             />
           </div>
@@ -481,7 +488,7 @@ function Alerts() {
               required
               placeholder="Describe the incident, precautionary actions, or instructions for field operators..."
               value={alertForm.message}
-              onChange={(e) => setAlertForm({ ...alertForm, message: e.target.value })}
+              onChange={(e) => { setCreateError(""); setAlertForm({ ...alertForm, message: e.target.value }); }}
               style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
             />
           </div>
@@ -489,7 +496,7 @@ function Alerts() {
           <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
             <button
               type="button"
-              onClick={() => setIsCreateModalOpen(false)}
+              onClick={() => { setIsCreateModalOpen(false); setCreateError(""); }}
               style={{ padding: "8px 16px", border: "1px solid #CCC", borderRadius: "6px", backgroundColor: "#FFF", cursor: "pointer" }}
             >
               Cancel
