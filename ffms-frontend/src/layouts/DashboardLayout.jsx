@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import Sidebar from "../components/Sidebar";
+import Footer from "../components/Footer";
 
 function DashboardLayout() {
   return (
@@ -15,6 +16,8 @@ function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      <Footer />
     </div>
   );
 }
