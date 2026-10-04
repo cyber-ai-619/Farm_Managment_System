@@ -45,7 +45,8 @@ function Login() {
 
   return (
     <main className="auth-page">
-      <section className="auth-card">
+      <div className="auth-shell">
+        <section className="auth-card">
         <Logo className="auth-logo" />
         <p className="auth-brand">AgriHud</p>
         <h1>FFMS Login</h1>
@@ -190,7 +191,18 @@ function Login() {
         <p className="auth-link">
           Don't have an account? <Link to="/register">Create an account</Link>
         </p>
-      </section>
+        </section>
+
+        <aside className="auth-visual" aria-label="Farm landscape">
+          <div className="auth-visual-content">
+            <span className="auth-kicker">Built for the way you farm</span>
+            <h2>Good decisions grow good seasons.</h2>
+            <p>Bring your crops, people, livestock, and harvest into one calm, clear view.</p>
+            <span className="auth-visual-line" aria-hidden="true" />
+            <span className="auth-location">Farm operations, beautifully connected</span>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }

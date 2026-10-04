@@ -80,7 +80,8 @@ function Register() {
 
   return (
     <main className="auth-page">
-      <section className="auth-card">
+      <div className="auth-shell">
+        <section className="auth-card">
         <Logo className="auth-logo" />
         <p className="auth-brand">AgriHud</p>
         <h1>Create FFMS Account</h1>
@@ -302,7 +303,18 @@ function Register() {
         <p className="auth-link">
           Already have an account? <Link to="/">Login here</Link>
         </p>
-      </section>
+        </section>
+
+        <aside className="auth-visual" aria-label="Farm landscape">
+          <div className="auth-visual-content">
+            <span className="auth-kicker">A better season starts here</span>
+            <h2>From first planting to final harvest.</h2>
+            <p>One trusted place to plan, monitor, and grow your operation with confidence.</p>
+            <span className="auth-visual-line" aria-hidden="true" />
+            <span className="auth-location">Farm operations, beautifully connected</span>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }
