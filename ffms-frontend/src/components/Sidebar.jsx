@@ -9,6 +9,7 @@ function Sidebar({ isOpen, onClose }) {
 
   const navItems = [
     { to: "/dashboard", label: "Dashboard" },
+    { to: "/profile", label: "Profile" },
     { to: "/farm", label: "Farms & Fields" },
     { to: "/crops", label: "Crops & Planting" },
     { to: "/livestock", label: "Livestock & Herds" },

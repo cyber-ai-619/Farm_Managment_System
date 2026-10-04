@@ -603,6 +603,16 @@ h3 {
   gap: clamp(8px, 1.8vw, 18px);
 }
 
+.navbar-profile-link {
+  color: var(--color-gold-bright);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.navbar-profile-link:hover {
+  color: var(--color-white);
+}
+
 .navbar-right button {
   position: relative;
   border: 1px solid rgba(212,165,74,0.5);
@@ -1141,5 +1151,92 @@ h3 {
   .auth-card {
     width: min(100% - 32px, 480px);
     padding: 34px 24px 28px;
+  }
+}
+
+.profile-editor {
+  max-width: 760px;
+}
+
+.profile-editor-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.profile-avatar-large {
+  display: grid;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 1px solid rgba(212, 165, 74, 0.55);
+  border-radius: 50%;
+  background: var(--color-forest);
+  color: var(--color-gold-bright);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.profile-editor-heading h2 {
+  color: var(--color-forest);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22px;
+}
+
+.profile-editor-heading p {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.profile-editor-form {
+  display: grid;
+  max-width: 520px;
+  gap: 18px;
+}
+
+.profile-editor-form input[readonly] {
+  background: rgba(30, 70, 50, 0.06);
+  color: var(--text-muted);
+}
+
+.profile-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.profile-feedback {
+  max-width: 520px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.profile-feedback-error {
+  border-color: rgba(192, 57, 43, 0.3);
+  background: rgba(192, 57, 43, 0.08);
+  color: #8f2f25;
+}
+
+.profile-feedback-success {
+  border-color: rgba(46, 125, 50, 0.3);
+  background: rgba(46, 125, 50, 0.08);
+  color: #286b2c;
+}
+
+@media (max-width: 480px) {
+  .profile-editor-heading {
+    align-items: flex-start;
+  }
+
+  .profile-page-header .btn-secondary {
+    width: 100%;
   }
 }

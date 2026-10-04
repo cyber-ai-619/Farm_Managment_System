@@ -53,6 +53,14 @@ export const authService = {
     return data.user;
   },
 
+  async updateProfile({ name }) {
+    const data = await api.put("/api/auth/me", { name });
+    if (data.user) {
+      localStorage.setItem("ffms_user", JSON.stringify(data.user));
+    }
+    return data.user;
+  },
+
   /**
    * Log out user from current session
    */

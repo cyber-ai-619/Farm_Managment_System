@@ -22,6 +22,7 @@ import Suppliers from "./pages/Suppliers";
 import Storage from "./pages/Storage";
 import Reports from "./pages/Reports";
 import Alerts from "./pages/Alerts";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/farm" element={<Farm />} />
             <Route path="/crops" element={<Crops />} />
             <Route path="/livestock" element={<Livestock />} />

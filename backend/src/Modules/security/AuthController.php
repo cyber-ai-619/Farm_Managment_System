@@ -13,6 +13,7 @@ require_once __DIR__ . '/AuditLogger.php';
  *   POST /api/auth/register
  *   POST /api/auth/login
  *   GET  /api/auth/me
+ *   PUT  /api/auth/me
  *   POST /api/auth/logout
  */
 class AuthController
@@ -150,6 +151,37 @@ class AuthController
         respond([
             'success' => true,
             'user'    => $this->publicUser($user),
+        ]);
+    }
+
+    /**
+     * Update the authenticated user's editable profile fields.
+     */
+    public function updateMe(): void
+    {
+        $payload = requireAuth();
+        $body = $this->jsonBody();
+        $name = trim($body['name'] ?? '');
+        $nameLength = preg_match_all('/./us', $name);
+
+        if ($nameLength === false || $name === '' || preg_match('/[\r\n]/', $name) || $nameLength > 150) {
+            respond(['success' => false, 'message' => 'Name must be between 1 and 150 characters.'], 422);
+        }
+
+        $userId = (int) $payload['sub'];
+        $this->users->updateName($userId, $name);
+        $user = $this->users->findById($userId);
+
+        if ($user === null) {
+            respond(['success' => false, 'message' => 'User not found.'], 404);
+        }
+
+        $this->audit->log('user.profile_updated', $userId, 'users', $userId);
+
+        respond([
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'user' => $this->publicUser($user),
         ]);
     }
 

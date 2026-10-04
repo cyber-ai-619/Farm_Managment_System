@@ -105,6 +105,14 @@ class UserModel
         return (int) $this->pdo->lastInsertId();
     }
 
+    public function updateName(int $id, string $name): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET name = :name, updated_at = CURRENT_TIMESTAMP WHERE id = :id'
+        );
+        $stmt->execute([':name' => $name, ':id' => $id]);
+    }
+
     /**
      * Verify a plain password against the stored hash.
      */

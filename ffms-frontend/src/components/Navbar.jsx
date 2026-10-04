@@ -103,6 +103,7 @@ function Navbar({ onToggleSidebar }) {
           <span className="welcome-label">Welcome</span>{" "}
           <span className="user-name">{user?.name || "User"}</span>
         </span>
+        <Link className="navbar-profile-link" to="/profile">Profile</Link>
         <span
           style={{
             fontFamily: "'Manrope', 'Segoe UI', sans-serif",
