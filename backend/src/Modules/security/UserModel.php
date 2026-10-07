@@ -39,6 +39,16 @@ class UserModel
         return $row ?: null;
     }
 
+    public function findForPasswordChange(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, email, password_hash FROM users WHERE id = :id AND is_active = 1 LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     /**
      * Find a user by their primary key.
      *
@@ -47,7 +57,8 @@ class UserModel
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT u.id, u.name, u.email, u.role_id, u.is_active, u.created_at, r.name AS role_name
+                'SELECT u.id, u.name, u.email, u.phone, u.location, u.profile_photo,
+                    u.role_id, u.is_active, u.created_at, r.name AS role_name
              FROM users u
              JOIN roles r ON r.id = u.role_id
              WHERE u.id = :id AND u.is_active = 1
@@ -103,6 +114,42 @@ class UserModel
         ]);
 
         return (int) $this->pdo->lastInsertId();
+    }
+
+    public function updateProfile(int $id, array $profile): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users
+             SET name = :name, email = :email, phone = :phone, location = :location,
+                 profile_photo = :profile_photo, updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id'
+        );
+        $stmt->execute([
+            ':name' => $profile['name'],
+            ':email' => $profile['email'],
+            ':phone' => $profile['phone'],
+            ':location' => $profile['location'],
+            ':profile_photo' => $profile['profile_photo'],
+            ':id' => $id,
+        ]);
+    }
+
+    public function emailExistsForOtherUser(string $email, int $id): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM users WHERE email = :email AND id <> :id');
+        $stmt->execute([':email' => $email, ':id' => $id]);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    public function updatePassword(int $id, string $plainPassword): void
+    {
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET password_hash = :hash, updated_at = CURRENT_TIMESTAMP WHERE id = :id'
+        );
+        $stmt->execute([
+            ':hash' => password_hash($plainPassword, PASSWORD_BCRYPT),
+            ':id' => $id,
+        ]);
     }
 
     /**
