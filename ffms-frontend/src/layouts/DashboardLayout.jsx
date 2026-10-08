@@ -16,11 +16,12 @@ function DashboardLayout() {
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         <main className="main-content">
-          <Outlet />
+          <div className="main-content-scroll">
+            <Outlet />
+          </div>
+          <Footer />
         </main>
       </div>
-
-      <Footer />
     </div>
   );
 }

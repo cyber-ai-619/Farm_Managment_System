@@ -159,7 +159,7 @@ h3 {
 .main-content {
   flex: 1;
   min-width: 0;
-  padding: clamp(18px, 3.5vw, 40px);
+  padding: 0;
   overflow-y: auto;
   overflow-x: hidden;
   background: transparent;
@@ -706,7 +706,6 @@ h3 {
 
 .sidebar-menu a:hover {
   background: rgba(0,0,0,0.14);
-  padding-left: 28px;
   color: var(--color-gold-bright);
 }
 
