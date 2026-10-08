@@ -6,7 +6,8 @@
  * and logging rich developer diagnostics to the JavaScript console in dev mode.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const rawBaseUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");
 
 /**
  * Helper to strip HTML tags from raw server errors (e.g. PHP notices or XAMPP error pages)

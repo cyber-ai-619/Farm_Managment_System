@@ -223,8 +223,8 @@ function Dashboard() {
               </div>
               <div className="health-meter" role="img" aria-label={`${farmHealth}% of farms have no priority alerts`}><span style={{ width: `${farmHealth}%` }} /></div>
               <div className="health-breakdown">
-                <Link to="/crops"><span className="health-breakdown-icon">✳</span><span><strong>{data.crops}</strong><small>Crop records</small></span><b>→</b></Link>
-                <Link to="/livestock"><span className="health-breakdown-icon">◉</span><span><strong>{data.animals}</strong><small>Animals</small></span><b>→</b></Link>
+                <Link to="/crops"><span className="health-breakdown-icon">✳</span><span><strong>{data.crops.length}</strong><small>Crop records</small></span><b>→</b></Link>
+                <Link to="/livestock"><span className="health-breakdown-icon">◉</span><span><strong>{data.animals.length}</strong><small>Animals</small></span><b>→</b></Link>
                 <Link to="/irrigation"><span className="health-breakdown-icon">⌁</span><span><strong>{data.systems.length}</strong><small>Water systems</small></span><b>→</b></Link>
               </div>
             </>
