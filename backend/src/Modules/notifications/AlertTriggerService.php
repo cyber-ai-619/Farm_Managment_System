@@ -51,10 +51,10 @@ class AlertTriggerService
 
         // 2. Overdue Equipment Maintenance Scan
         $maintStmt = $this->pdo->prepare(
-            'SELECT ms.id, e.name AS equipment_name, ms.service_type, ms.due_date 
+            'SELECT ms.id, e.name AS equipment_name, ms.service_type, ms.next_service_date 
              FROM maintenance_schedules ms
              JOIN equipment e ON e.id = ms.equipment_id
-             WHERE e.farm_id = :farm_id AND ms.status = "scheduled" AND ms.due_date < CURDATE()'
+             WHERE e.farm_id = :farm_id AND (ms.status IN ("due", "overdue") OR (ms.status = "scheduled" AND ms.next_service_date < CURDATE()))'
         );
         $maintStmt->execute([':farm_id' => $farmId]);
         $overdueMaint = $maintStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -62,7 +62,7 @@ class AlertTriggerService
         foreach ($overdueMaint as $m) {
             $title = "Overdue Service: {$m['equipment_name']}";
             if (!$this->alertModel->alertExists($farmId, 'maintenance_due', $title)) {
-                $msg = "Scheduled '{$m['service_type']}' for {$m['equipment_name']} was due on {$m['due_date']} and requires attention.";
+                $msg = "Scheduled '{$m['service_type']}' for {$m['equipment_name']} was due on {$m['next_service_date']} and requires attention.";
                 $id = $this->alertModel->createAlert($farmId, null, [
                     'alert_type' => 'maintenance_due',
                     'title'      => $title,
@@ -98,7 +98,7 @@ class AlertTriggerService
 
         // 4. Overdue Farm Tasks Scan
         $taskStmt = $this->pdo->prepare(
-            'SELECT ta.title, ta.due_date, w.name AS worker_name 
+            'SELECT ta.title, ta.due_date, CONCAT(w.first_name, " ", w.last_name) AS worker_name 
              FROM task_assignments ta
              LEFT JOIN workers w ON w.id = ta.worker_id
              WHERE ta.farm_id = :farm_id AND ta.status != "completed" AND ta.due_date < CURDATE()'
