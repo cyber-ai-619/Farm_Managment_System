@@ -50,6 +50,13 @@ function getPdo(): PDO
 
         $dbSsl = $_ENV['DB_SSL'] ?? getenv('DB_SSL');
         if ($dbSsl === 'true' || $dbSsl === '1') {
+            $customCa = $_ENV['DB_SSL_CA'] ?? getenv('DB_SSL_CA');
+            if (!empty($customCa) && file_exists($customCa)) {
+                $options[PDO::MYSQL_ATTR_SSL_CA] = $customCa;
+            } elseif (file_exists('/etc/ssl/certs/ca-certificates.crt')) {
+                // Debian/Ubuntu default CA bundle installed in Docker container
+                $options[PDO::MYSQL_ATTR_SSL_CA] = '/etc/ssl/certs/ca-certificates.crt';
+            }
             $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
         }
 
