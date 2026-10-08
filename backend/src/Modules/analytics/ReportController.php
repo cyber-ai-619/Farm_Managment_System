@@ -190,12 +190,12 @@ class ReportController
         [$farmId, $from, $to] = $this->getFilterParams();
 
         $stmt = $this->pdo->prepare(
-            'SELECT w.id, w.name, w.role, w.daily_wage,
-                    (SELECT COUNT(*) FROM worker_attendance wa WHERE wa.worker_id = w.id AND wa.attendance_date BETWEEN :from AND :to AND wa.status = "present") AS days_worked,
+            'SELECT w.id, CONCAT(w.first_name, " ", w.last_name) AS name, w.role, w.daily_rate AS daily_wage,
+                    (SELECT COUNT(*) FROM worker_attendance wa WHERE wa.worker_id = w.id AND wa.work_date BETWEEN :from AND :to AND wa.status = "present") AS days_worked,
                     (SELECT COUNT(*) FROM task_assignments ta WHERE ta.worker_id = w.id AND ta.created_at BETWEEN :from2 AND :to2 AND ta.status = "completed") AS tasks_completed
              FROM workers w
              WHERE w.farm_id = :farm_id
-             ORDER BY w.name ASC'
+             ORDER BY w.first_name ASC, w.last_name ASC'
         );
         $stmt->execute([':farm_id' => $farmId, ':from' => $from, ':to' => $to, ':from2' => $from, ':to2' => $to]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

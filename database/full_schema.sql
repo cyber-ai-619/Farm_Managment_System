@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Farm Management System (FFMS) — Complete Unified Database Schema
 --
--- Single-file consolidation of all 16 database migrations (Phases 1 to 5).
+-- Single-file consolidation of all 17 database migrations (Phases 1 to 5).
 -- Total Tables: 59 tables
 --
 -- HOW TO USE ON YOUR LOCAL MACHINE:
@@ -11,6 +11,8 @@
 
 CREATE DATABASE IF NOT EXISTS `farm_management` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `farm_management`;
+
+SET FOREIGN_KEY_CHECKS = 0;
 
 
 -- ---------------------------------------------------------------------------
@@ -42,9 +44,9 @@ CREATE TABLE IF NOT EXISTS users (
     email         VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role_id       INT UNSIGNED NOT NULL DEFAULT 5, -- defaults to 'worker'
-    phone         VARCHAR(30) NULL,
-    location      VARCHAR(255) NULL,
-    profile_photo MEDIUMTEXT NULL,
+    phone         VARCHAR(30) NULL,                -- Migration 017
+    location      VARCHAR(255) NULL,               -- Migration 017
+    profile_photo MEDIUMTEXT NULL,                 -- Migration 017
     is_active     TINYINT(1)   NOT NULL DEFAULT 1,
     created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1316,3 +1318,17 @@ CREATE TABLE IF NOT EXISTS notification_logs (
     CONSTRAINT fk_notif_alert FOREIGN KEY (alert_id) REFERENCES alerts (id) ON DELETE CASCADE,
     INDEX idx_notif_alert (alert_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------------
+-- SECTION: 017_user_account_profile.sql
+-- ---------------------------------------------------------------------------
+
+-- =============================================================================
+-- Migration 017: User Account Profile
+-- Note: The profile columns (`phone`, `location`, `profile_photo`)
+-- introduced in migration 017 are consolidated directly into the
+-- `users` table definition in SECTION: 001_users_roles.sql.
+-- =============================================================
+
+SET FOREIGN_KEY_CHECKS = 1;
+
