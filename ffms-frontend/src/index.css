@@ -420,6 +420,16 @@ h3 {
   align-items: start;
 }
 
+.farm-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.farm-stats-grid > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 960px) {
   .master-detail-layout {
     grid-template-columns: 1fr;
@@ -451,6 +461,11 @@ h3 {
   }
 }
 @media (max-width: 600px) {
+  .farm-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px !important;
+  }
+
   .grid-3-col {
     grid-template-columns: 1fr;
   }

@@ -1,8 +1,40 @@
-import { useState, useEffect, useCallback } from "react";
+import { Component, lazy, Suspense, useState, useEffect, useCallback } from "react";
 import farmService from "../services/farmService";
 import Modal from "../components/Modal";
 import Loading from "../components/Loading";
 import { useAuth } from "../hooks/useAuth";
+
+const FarmLocationPicker = lazy(() => import("../components/FarmLocationPicker"));
+
+class FarmLocationPickerBoundary extends Component {
+  state = { error: null };
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error) {
+    console.error("Farm location picker failed to load:", error);
+  }
+
+  handleRetry = () => {
+    this.setState({ error: null });
+  };
+
+  render() {
+    if (this.state.error) {
+      return (
+        <p className="farm-location-message" role="alert">
+          The map failed to initialize: {this.state.error.message || "Unknown map error"}
+          {" "}
+          <button type="button" onClick={this.handleRetry}>Retry map</button>
+        </p>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function Farm() {
   const { role } = useAuth();
@@ -18,6 +50,7 @@ function Farm() {
   const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
   const [editingFarm, setEditingFarm] = useState(null);
   const [editingField, setEditingField] = useState(null);
+  const [farmFormError, setFarmFormError] = useState("");
 
   // Form states
   const [farmForm, setFarmForm] = useState({
@@ -79,14 +112,15 @@ function Farm() {
   }, [selectedFarm, fetchFields]);
 
   const handleOpenFarmModal = (farm = null) => {
+    setFarmFormError("");
     if (farm) {
       setEditingFarm(farm);
       setFarmForm({
         name: farm.name || "",
         location: farm.location || "",
         total_area_ha: farm.total_area_ha || "",
-        latitude: farm.latitude || "",
-        longitude: farm.longitude || "",
+        latitude: farm.latitude ?? "",
+        longitude: farm.longitude ?? "",
         description: farm.description || "",
       });
     } else {
@@ -107,17 +141,31 @@ function Farm() {
     e.preventDefault();
     if (!farmForm.name.trim()) return;
 
+    const latitude = farmForm.latitude === "" ? null : Number(farmForm.latitude);
+    const longitude = farmForm.longitude === "" ? null : Number(farmForm.longitude);
+    if (
+      (latitude === null) !== (longitude === null)
+      || (latitude !== null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90))
+      || (longitude !== null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180))
+    ) {
+      setFarmFormError("Choose a valid farm location on the map before saving.");
+      return;
+    }
+
     try {
       setSubmitting(true);
+      const farmData = { ...farmForm, latitude, longitude };
+      let savedFarm;
       if (editingFarm) {
-        await farmService.updateFarm(editingFarm.id, farmForm);
+        savedFarm = await farmService.updateFarm(editingFarm.id, farmData);
       } else {
-        await farmService.createFarm(farmForm);
+        savedFarm = await farmService.createFarm(farmData);
       }
       setIsFarmModalOpen(false);
       await fetchFarms();
+      if (savedFarm?.id) setSelectedFarm(savedFarm);
     } catch (err) {
-      alert(err.message || "Failed to save farm.");
+      setFarmFormError(err.message || "Failed to save farm. Check the backend connection and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -249,7 +297,7 @@ function Farm() {
                               e.stopPropagation();
                               handleOpenFarmModal(f);
                             }}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "#2C5A3F", fontSize: "0.85rem" }}
+                            style={{ minWidth: "44px", minHeight: "44px", padding: "8px", background: "none", border: "none", cursor: "pointer", color: "#2C5A3F", fontSize: "0.85rem" }}
                           >
                             Edit
                           </button>
@@ -259,7 +307,7 @@ function Farm() {
                               e.stopPropagation();
                               handleDeleteFarm(f.id);
                             }}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "#7A4A52", fontSize: "0.85rem" }}
+                            style={{ minWidth: "44px", minHeight: "44px", padding: "8px", background: "none", border: "none", cursor: "pointer", color: "#7A4A52", fontSize: "0.85rem" }}
                           >
                             &times;
                           </button>
@@ -311,7 +359,7 @@ function Farm() {
                     )}
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(30,70,50,0.1)" }}>
+                  <div className="farm-stats-grid" style={{ gap: "16px", marginTop: "16px", paddingTop: "16px", borderTop: "1px solid rgba(30,70,50,0.1)" }}>
                     <div>
                       <span style={{ fontSize: "0.8rem", color: "var(--color-charcoal-60)" }}>Total Estate Area</span>
                       <p style={{ fontWeight: 700, margin: 0, color: "var(--color-forest)" }}>{selectedFarm.total_area_ha ? `${selectedFarm.total_area_ha} ha` : "N/A"}</p>
@@ -319,7 +367,9 @@ function Farm() {
                     <div>
                       <span style={{ fontSize: "0.8rem", color: "var(--color-charcoal-60)" }}>GPS Coordinates</span>
                       <p style={{ fontWeight: 700, margin: 0, color: "var(--color-forest)" }}>
-                        {selectedFarm.latitude && selectedFarm.longitude ? `${selectedFarm.latitude}, ${selectedFarm.longitude}` : "Not logged"}
+                        {selectedFarm.latitude !== null && selectedFarm.latitude !== "" && selectedFarm.longitude !== null && selectedFarm.longitude !== ""
+                          ? `${selectedFarm.latitude}, ${selectedFarm.longitude}`
+                          : "Not logged"}
                       </p>
                     </div>
                     <div>
@@ -401,43 +451,37 @@ function Farm() {
             <label>Location / Address</label>
             <input
               type="text"
+              maxLength={255}
               value={farmForm.location}
               onChange={(e) => setFarmForm({ ...farmForm, location: e.target.value })}
-              placeholder="e.g. Central Valley, Plot 44"
+              placeholder="Search below or enter a location name"
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
-            <div className="form-field">
-              <label>Total Area (ha)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={farmForm.total_area_ha}
-                onChange={(e) => setFarmForm({ ...farmForm, total_area_ha: e.target.value })}
-                placeholder="45.5"
+          <FarmLocationPickerBoundary>
+            <Suspense fallback={<p role="status">Loading interactive map…</p>}>
+              <FarmLocationPicker
+                latitude={farmForm.latitude}
+                longitude={farmForm.longitude}
+                onChange={({ latitude, longitude, location }) => {
+                  setFarmForm((current) => ({ ...current, latitude, longitude, location }));
+                  setFarmFormError("");
+                }}
               />
-            </div>
-            <div className="form-field">
-              <label>Latitude</label>
-              <input
-                type="number"
-                step="0.000001"
-                value={farmForm.latitude}
-                onChange={(e) => setFarmForm({ ...farmForm, latitude: e.target.value })}
-                placeholder="-1.286389"
-              />
-            </div>
-            <div className="form-field">
-              <label>Longitude</label>
-              <input
-                type="number"
-                step="0.000001"
-                value={farmForm.longitude}
-                onChange={(e) => setFarmForm({ ...farmForm, longitude: e.target.value })}
-                placeholder="36.817223"
-              />
-            </div>
+            </Suspense>
+          </FarmLocationPickerBoundary>
+
+          {farmFormError && <p className="farm-location-message" role="alert">{farmFormError}</p>}
+
+          <div className="form-field">
+            <label>Total Area (ha)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={farmForm.total_area_ha}
+              onChange={(e) => setFarmForm({ ...farmForm, total_area_ha: e.target.value })}
+              placeholder="45.5"
+            />
           </div>
 
           <div className="form-field">

@@ -25,6 +25,30 @@ An Intelligent Farm Management System built with plain PHP 8+, MySQL, and React 
    npm run dev
    ```
 
+### Testing farm locations on a phone
+
+The Farms page uses an OpenStreetMap picker to search Zambia, select a point on the map, or request the device's current location. Map-selected coordinates are saved in the existing farm latitude/longitude fields; a searchable street address is optional for remote farms.
+
+For a phone on the same Wi-Fi network as the development computer:
+
+1. Start the backend so it accepts connections from the local network:
+   ```bash
+   cd backend
+   php -S 0.0.0.0:8000 -t public public/index.php
+   ```
+2. In a second terminal, set the backend URL to the computer's Wi-Fi/LAN IPv4 address and start Vite on the network interface:
+   ```powershell
+   cd ffms-frontend
+   $env:VITE_API_URL = "http://192.168.1.20:8000"
+   npm run dev -- --host 0.0.0.0
+   ```
+   Replace `192.168.1.20` with the computer's actual LAN IP address. Allow Node.js and PHP through the computer's firewall for the private network if prompted.
+3. Open the Vite **Network** URL shown in the terminal on the phone (for example, `http://192.168.1.20:5173`) and sign in.
+4. Open **Farm & Land Management**, register or edit a farm, search for a place or tap the map, then save. Verify the selected marker and coordinates reload after reopening Edit.
+5. Test panning, pinch-to-zoom, the search results, and **Use My Current Location** at phone width. Browsers generally require a secure context (HTTPS) to grant geolocation on a phone; use an HTTPS development tunnel or certificate for that test. Map tapping and search still work over local HTTP.
+
+Nominatim requests are debounced, serialized at no more than one request per 1.1 seconds, and cached for the current page session. Keep the visible OpenStreetMap attribution; avoid turning the public Nominatim service into a bulk or high-volume geocoder.
+
 ### Option B — Docker
 
 ```bash
@@ -246,4 +270,3 @@ backend/src/Modules/
 ├── analytics/       ✅ Phase 5
 └── notifications/   ✅ Phase 5
 ```
-

@@ -4,6 +4,12 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    dedupe: ["react", "react-dom"],
+  },
+  optimizeDeps: {
+    exclude: ["react-leaflet", "@react-leaflet/core"],
+  },
   css: {
     transformer: 'postcss',
   },
