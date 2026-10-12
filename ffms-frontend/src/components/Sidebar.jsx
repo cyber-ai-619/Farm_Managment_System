@@ -1,7 +1,18 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
+  const [isMobileViewport, setIsMobileViewport] = useState(() => (
+    typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches
+  ));
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const updateViewport = (event) => setIsMobileViewport(event.matches);
+    mediaQuery.addEventListener("change", updateViewport);
+    return () => mediaQuery.removeEventListener("change", updateViewport);
+  }, []);
 
   const handleLinkClick = () => {
     if (onClose) onClose();
@@ -29,8 +40,21 @@ function Sidebar({ isOpen, onClose }) {
 
   return (
     <>
-      {isOpen && <div className="sidebar-backdrop" onClick={onClose} />}
-      <aside className={`sidebar ${isOpen ? "open" : ""}`}>
+      {isOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          onClick={onClose}
+          aria-label="Close navigation menu"
+        />
+      )}
+      <aside
+        id="primary-navigation"
+        className={`sidebar ${isOpen ? "open" : ""}`}
+        aria-label="Primary navigation"
+        aria-hidden={isMobileViewport && !isOpen}
+        inert={isMobileViewport && !isOpen}
+      >
         <div className="sidebar-header-mobile">
           <span style={{ color: "#F5EAD0", fontWeight: 700, fontSize: "16px" }}>Farm Navigation</span>
           <button type="button" className="sidebar-close-btn" onClick={onClose} aria-label="Close menu">
@@ -45,6 +69,7 @@ function Sidebar({ isOpen, onClose }) {
                 key={item.to}
                 to={item.to}
                 className={isActive ? "active" : ""}
+                aria-current={isActive ? "page" : undefined}
                 onClick={handleLinkClick}
               >
                 {item.label}

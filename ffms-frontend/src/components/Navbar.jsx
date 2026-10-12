@@ -5,7 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import alertService from "../services/alertService";
 import AccountMenu from "./AccountMenu";
 
-function Navbar({ onToggleSidebar }) {
+function Navbar({ onToggleSidebar, sidebarOpen = false }) {
   const navigate = useNavigate();
   const { role, logout } = useAuth();
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
@@ -52,9 +52,11 @@ function Navbar({ onToggleSidebar }) {
           type="button"
           className="mobile-menu-btn"
           onClick={onToggleSidebar}
-          aria-label="Toggle navigation menu"
+          aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-controls="primary-navigation"
+          aria-expanded={sidebarOpen}
         >
-          ☰
+          <span aria-hidden="true">{sidebarOpen ? "×" : "☰"}</span>
         </button>
         <div className="navbar-brand">
           <Logo className="navbar-logo" />
@@ -85,6 +87,7 @@ function Navbar({ onToggleSidebar }) {
           🔔 Alerts
           {unreadAlertsCount > 0 && (
             <span
+              className="navbar-role-badge"
               style={{
                 marginLeft: "6px",
                 padding: "2px 6px",
@@ -118,7 +121,7 @@ function Navbar({ onToggleSidebar }) {
         >
           {formatRole(role)}
         </span>
-        <button type="button" onClick={handleLogout}>
+        <button type="button" className="navbar-logout" onClick={handleLogout}>
           Logout
         </button>
       </div>

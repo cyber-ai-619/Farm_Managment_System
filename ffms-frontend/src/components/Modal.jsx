@@ -22,6 +22,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
 
   return createPortal(
     <div
+      className="ffms-modal-backdrop"
       style={{
         position: "fixed",
         inset: 0,
@@ -37,6 +38,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
       onClick={onClose}
     >
       <div
+        className="ffms-modal"
         style={{
           width: "100%",
           maxWidth: `min(100%, ${maxWidth})`,
@@ -81,6 +83,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
           <button
             type="button"
             onClick={onClose}
+            className="ffms-modal-close"
             style={{
               background: "none",
               border: "none",
@@ -98,7 +101,7 @@ export function Modal({ isOpen, onClose, title, children, maxWidth = "560px" }) 
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: "clamp(16px, 3vw, 24px)", maxHeight: "calc(85vh - 90px)", overflowY: "auto" }}>
+        <div className="ffms-modal-body" style={{ padding: "clamp(16px, 3vw, 24px)", maxHeight: "calc(85vh - 90px)", overflowY: "auto" }}>
           {children}
         </div>
       </div>
