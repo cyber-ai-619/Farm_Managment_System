@@ -65,6 +65,16 @@ if ($requestUri === '/api/auth/register' && $requestMethod === 'POST') {
     $ctrl->register();
 }
 
+if ($requestUri === '/api/auth/invite' && $requestMethod === 'GET') {
+    $ctrl = new AuthController(getPdo());
+    $ctrl->getInvite();
+}
+
+if ($requestUri === '/api/auth/accept-invite' && $requestMethod === 'POST') {
+    $ctrl = new AuthController(getPdo());
+    $ctrl->acceptInvite();
+}
+
 if ($requestUri === '/api/auth/login' && $requestMethod === 'POST') {
     $ctrl = new AuthController(getPdo());
     $ctrl->login();
@@ -443,9 +453,62 @@ if (preg_match('#^/api/workers/(\d+)$#', $requestUri, $m)) {
     if ($requestMethod === 'PUT') $ctrl->updateWorker($id);
 }
 
+if (preg_match('#^/api/workers/(\d+)/link-user$#', $requestUri, $m)) {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    $ctrl = new LabourController($pdo);
+    $id   = (int) $m[1];
+    if ($requestMethod === 'POST') $ctrl->linkUserAccount($id);
+}
+
+// Worker Self-Service Routes
+if ($requestUri === '/api/labour/my-tasks' && $requestMethod === 'GET') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->myTasks();
+}
+
+if (preg_match('#^/api/labour/my-tasks/(\d+)$#', $requestUri, $m)) {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    $ctrl = new LabourController($pdo);
+    $id   = (int) $m[1];
+    if ($requestMethod === 'PATCH' || $requestMethod === 'PUT') $ctrl->updateMyTask($id);
+}
+
+if ($requestUri === '/api/labour/my-clockin' && $requestMethod === 'POST') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->myClockIn();
+}
+
+if ($requestUri === '/api/labour/my-clockout' && $requestMethod === 'POST') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->myClockOut();
+}
+
+if ($requestUri === '/api/labour/my-attendance' && $requestMethod === 'GET') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->myAttendance();
+}
+
+if ($requestUri === '/api/labour/my-payroll' && $requestMethod === 'GET') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->myPayroll();
+}
+
+// Attendance & Muster Roll
 if ($requestUri === '/api/labour/attendance' && $requestMethod === 'GET') {
     require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
     (new LabourController($pdo))->indexAttendance();
+}
+
+if ($requestUri === '/api/labour/bulk-attendance' && $requestMethod === 'POST') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->bulkAttendance();
+}
+
+if (preg_match('#^/api/labour/attendance/(\d+)/verify$#', $requestUri, $m)) {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    $ctrl = new LabourController($pdo);
+    $id   = (int) $m[1];
+    if ($requestMethod === 'PATCH' || $requestMethod === 'PUT') $ctrl->verifyAttendance($id);
 }
 
 if (preg_match('#^/api/workers/(\d+)/attendance$#', $requestUri, $m)) {
@@ -455,6 +518,7 @@ if (preg_match('#^/api/workers/(\d+)/attendance$#', $requestUri, $m)) {
     if ($requestMethod === 'POST') $ctrl->storeAttendance($id);
 }
 
+// Tasks Management
 if ($requestUri === '/api/labour/tasks' && $requestMethod === 'GET') {
     require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
     (new LabourController($pdo))->indexTasks();
@@ -470,6 +534,49 @@ if (preg_match('#^/api/labour/tasks/(\d+)/status$#', $requestUri, $m)) {
     $ctrl = new LabourController($pdo);
     $id   = (int) $m[1];
     if ($requestMethod === 'PATCH' || $requestMethod === 'PUT') $ctrl->updateTaskStatus($id);
+}
+
+if (preg_match('#^/api/labour/tasks/(\d+)/verify$#', $requestUri, $m)) {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    $ctrl = new LabourController($pdo);
+    $id   = (int) $m[1];
+    if ($requestMethod === 'PATCH' || $requestMethod === 'PUT') $ctrl->verifyTask($id);
+}
+
+// Payroll Management
+if ($requestUri === '/api/labour/payroll' && $requestMethod === 'GET') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->indexPayroll();
+}
+
+if ($requestUri === '/api/labour/payroll/generate' && $requestMethod === 'POST') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->generatePayroll();
+}
+
+if (preg_match('#^/api/labour/payroll/(\d+)/payment$#', $requestUri, $m)) {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    $ctrl = new LabourController($pdo);
+    $id   = (int) $m[1];
+    if ($requestMethod === 'PATCH' || $requestMethod === 'PUT') $ctrl->updatePayrollPayment($id);
+}
+
+// Field Incidents
+if ($requestUri === '/api/labour/incidents' && $requestMethod === 'GET') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->indexIncidents();
+}
+
+if ($requestUri === '/api/labour/incidents' && $requestMethod === 'POST') {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    (new LabourController($pdo))->reportIncident();
+}
+
+if (preg_match('#^/api/labour/incidents/(\d+)/resolve$#', $requestUri, $m)) {
+    require_once __DIR__ . '/../src/Modules/labour/LabourController.php';
+    $ctrl = new LabourController($pdo);
+    $id   = (int) $m[1];
+    if ($requestMethod === 'PATCH' || $requestMethod === 'PUT') $ctrl->resolveIncident($id);
 }
 
 // -----------------------------------------------------------------------------

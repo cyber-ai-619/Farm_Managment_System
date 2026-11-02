@@ -183,6 +183,13 @@ function Dashboard() {
           { to: "/weather", cardClass: "stat-card-livestock", icon: "☼", trend: "CLIMATE", label: "Weather station", value: temperature !== undefined && temperature !== null ? `${Math.round(Number(temperature))}°` : "--°", unit: "", footnote: weatherDescription },
           { to: "/alerts", cardClass: criticalAlerts.length ? "stat-card-alerts has-alerts" : "stat-card-alerts", icon: "!", trend: "ATTENTION", label: "Agronomic alerts", value: criticalAlerts.length, unit: criticalAlerts.length === 1 ? "alert" : "alerts", footnote: criticalAlerts.length ? "Needs review" : "All clear" },
         ];
+      case "veterinarian":
+        return [
+          { to: "/livestock", cardClass: "stat-card-livestock", icon: "◉", trend: "HERD", label: "Livestock registry", value: data.animals.length, unit: "animals", footnote: "Animals under medical care" },
+          { to: "/livestock", cardClass: "stat-card-crops", icon: "💉", trend: "HEALTH", label: "Vaccines & therapy", value: "Health", unit: "Active", footnote: "Vaccine and treatment records" },
+          { to: "/alerts", cardClass: criticalAlerts.length ? "stat-card-alerts has-alerts" : "stat-card-alerts", icon: "!", trend: "ATTENTION", label: "Health alerts", value: criticalAlerts.length, unit: criticalAlerts.length === 1 ? "alert" : "alerts", footnote: criticalAlerts.length ? "Needs review" : "No critical alerts" },
+          { to: "/weather", cardClass: "stat-card-farms", icon: "☼", trend: "STATION", label: "Field conditions", value: temperature !== undefined && temperature !== null ? `${Math.round(Number(temperature))}°` : "--°", unit: "", footnote: weatherDescription },
+        ];
       case "farm_manager":
       case "farm_owner":
       case "admin":
@@ -204,6 +211,8 @@ function Dashboard() {
         return "Financial ledgers, sales orders, and procurement overview.";
       case "agronomist":
         return "Crop development, soil conditions, and scouting alerts.";
+      case "veterinarian":
+        return "Livestock health monitoring, vaccine schedules, and medical treatment records.";
       case "farm_manager":
         return "Operational management, daily activities, and workforce logistics.";
       case "admin":
@@ -291,8 +300,8 @@ function Dashboard() {
       </section>
 
       <div className="dashboard-content-grid">
-        {/* Health Panel (Owners, Managers, Agronomists) */}
-        {["admin", "farm_owner", "farm_manager", "agronomist"].includes(userRole) && (
+        {/* Health Panel (Owners, Managers, Agronomists, Veterinarians) */}
+        {["admin", "farm_owner", "farm_manager", "agronomist", "veterinarian"].includes(userRole) && (
           <section className="dashboard-panel dashboard-health-panel">
             <div className="panel-heading">
               <div><p className="section-kicker">Portfolio snapshot</p><h2>Farm health</h2></div>
@@ -313,7 +322,7 @@ function Dashboard() {
                 <div className="health-meter" role="img" aria-label={`${farmHealth}% of farms have no priority alerts`}><span style={{ width: `${farmHealth}%` }} /></div>
                 <div className="health-breakdown">
                   <Link to="/crops"><span className="health-breakdown-icon">✳</span><span><strong>{data.crops.length}</strong><small>Crop records</small></span><b>→</b></Link>
-                  {["admin", "farm_owner", "farm_manager"].includes(userRole) && (
+                  {["admin", "farm_owner", "farm_manager", "veterinarian"].includes(userRole) && (
                     <Link to="/livestock"><span className="health-breakdown-icon">◉</span><span><strong>{data.animals.length}</strong><small>Animals</small></span><b>→</b></Link>
                   )}
                   <Link to="/irrigation"><span className="health-breakdown-icon">⌁</span><span><strong>{data.systems.length}</strong><small>Water systems</small></span><b>→</b></Link>
@@ -387,6 +396,7 @@ function Dashboard() {
             {["admin", "farm_owner", "farm_manager", "agronomist"].includes(userRole) && <Link to="/harvest">Record harvest <span>→</span></Link>}
             {["admin", "farm_owner", "farm_manager"].includes(userRole) && <Link to="/labour">Review tasks <span>→</span></Link>}
             {["admin", "farm_owner", "farm_manager", "accountant"].includes(userRole) && <Link to="/inventory">Check stock <span>→</span></Link>}
+            {["admin", "farm_owner", "farm_manager", "veterinarian"].includes(userRole) && <Link to="/livestock">Livestock records <span>→</span></Link>}
             {userRole === "worker" && <Link to="/tools">Check equipment <span>→</span></Link>}
           </div>
         </section>

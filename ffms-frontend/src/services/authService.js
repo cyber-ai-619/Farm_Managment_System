@@ -52,6 +52,32 @@ export const authService = {
   },
 
   /**
+   * Fetch invite details by token for auto-populating signup fields
+   * @param {string} token
+   */
+  async getInvite(token) {
+    const res = await api.get("/api/auth/invite", { params: { token } });
+    return res.data;
+  },
+
+  /**
+   * Accept an invitation and activate member account
+   * @param {object} param0 - { token, name, password }
+   */
+  async acceptInvite({ token, name, password }) {
+    const data = await api.post("/api/auth/accept-invite", {
+      token,
+      name,
+      password,
+    });
+    if (data.token) {
+      localStorage.setItem("ffms_token", data.token);
+      cacheUser(data.user);
+    }
+    return data;
+  },
+
+  /**
    * Fetch current authenticated user profile
    */
   async me() {

@@ -103,6 +103,19 @@ export function AuthProvider({ children }) {
     return updatedUser;
   }, []);
 
+  const acceptInvite = useCallback(async (payload) => {
+    setError(null);
+    try {
+      const response = await authService.acceptInvite(payload);
+      setUser(response.user);
+      setToken(response.token);
+      return response;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }, []);
+
   const changePassword = useCallback((passwords) => authService.changePassword(passwords), []);
 
   const value = {
@@ -114,6 +127,7 @@ export function AuthProvider({ children }) {
     role: user?.role_name || user?.role || "worker",
     login,
     register,
+    acceptInvite,
     logout,
     refreshUser,
     updateProfile,

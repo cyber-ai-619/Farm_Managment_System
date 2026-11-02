@@ -23,15 +23,17 @@ import Storage from "./pages/Storage";
 import Reports from "./pages/Reports";
 import Alerts from "./pages/Alerts";
 import Team from "./pages/Team";
+import WorkerPortal from "./pages/WorkerPortal";
 
-const ROLES_ALL = ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "worker"];
+const ROLES_ALL = ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "worker", "veterinarian"];
 const ROLES_AGRI = ["admin", "farm_owner", "farm_manager", "agronomist"];
 const ROLES_OPS = ["admin", "farm_owner", "farm_manager"];
+const ROLES_LIVESTOCK = ["admin", "farm_owner", "farm_manager", "veterinarian"];
 const ROLES_FINANCE = ["admin", "farm_owner", "accountant"];
 const ROLES_SUPPLY = ["admin", "farm_owner", "farm_manager", "accountant"];
-const ROLES_FIELD_CREW = ["admin", "farm_owner", "farm_manager", "agronomist", "worker"];
+const ROLES_FIELD_CREW = ["admin", "farm_owner", "farm_manager", "agronomist", "worker", "veterinarian"];
 const ROLES_EQUIP_CREW = ["admin", "farm_owner", "farm_manager", "worker"];
-const ROLES_REPORTS = ["admin", "farm_owner", "farm_manager", "agronomist", "accountant"];
+const ROLES_REPORTS = ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "veterinarian"];
 
 function App() {
   return (
@@ -51,9 +53,10 @@ function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/my-work" element={<ProtectedRoute allowedRoles={ROLES_FIELD_CREW}><WorkerPortal /></ProtectedRoute>} />
             <Route path="/farm" element={<ProtectedRoute allowedRoles={ROLES_AGRI}><Farm /></ProtectedRoute>} />
             <Route path="/crops" element={<ProtectedRoute allowedRoles={ROLES_AGRI}><Crops /></ProtectedRoute>} />
-            <Route path="/livestock" element={<ProtectedRoute allowedRoles={ROLES_OPS}><Livestock /></ProtectedRoute>} />
+            <Route path="/livestock" element={<ProtectedRoute allowedRoles={ROLES_LIVESTOCK}><Livestock /></ProtectedRoute>} />
             <Route path="/irrigation" element={<ProtectedRoute allowedRoles={ROLES_FIELD_CREW}><Irrigation /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute allowedRoles={ROLES_SUPPLY}><Inventory /></ProtectedRoute>} />
             <Route path="/tools" element={<ProtectedRoute allowedRoles={ROLES_EQUIP_CREW}><Tools /></ProtectedRoute>} />

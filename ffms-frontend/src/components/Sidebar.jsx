@@ -3,13 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 const NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "worker"] },
+  { to: "/dashboard", label: "Dashboard", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "veterinarian"] },
+  { to: "/my-work", label: "My Work & Tasks", roles: ["worker", "admin", "farm_owner", "farm_manager"] },
   { to: "/farm", label: "Farms & Fields", roles: ["admin", "farm_owner", "farm_manager", "agronomist"] },
   { to: "/crops", label: "Crops & Planting", roles: ["admin", "farm_owner", "farm_manager", "agronomist"] },
-  { to: "/livestock", label: "Livestock & Herds", roles: ["admin", "farm_owner", "farm_manager"] },
+  { to: "/livestock", label: "Livestock & Herds", roles: ["admin", "farm_owner", "farm_manager", "veterinarian"] },
   { to: "/irrigation", label: "Irrigation Systems", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "worker"] },
   { to: "/inventory", label: "Inventory & Stock", roles: ["admin", "farm_owner", "farm_manager", "accountant"] },
-  { to: "/labour", label: "Labour & Tasks", roles: ["admin", "farm_owner", "farm_manager"] },
+  { to: "/tools", label: "Tools & Equipment", roles: ["admin", "farm_owner", "farm_manager", "worker"] },
+  { to: "/labour", label: "Labour & Workforce", roles: ["admin", "farm_owner", "farm_manager"] },
   { to: "/team", label: "Farm Team & Access", roles: ["admin", "farm_owner"] },
   { to: "/pest-disease", label: "Pest & Disease", roles: ["admin", "farm_owner", "farm_manager", "agronomist"] },
   { to: "/weather", label: "Weather Station", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "worker"] },
@@ -18,8 +20,8 @@ const NAV_ITEMS = [
   { to: "/money", label: "Finance & Budgets", roles: ["admin", "farm_owner", "accountant"] },
   { to: "/suppliers", label: "Suppliers & Procurement", roles: ["admin", "farm_owner", "farm_manager", "accountant"] },
   { to: "/storage", label: "Storage & Warehouses", roles: ["admin", "farm_owner", "farm_manager", "accountant"] },
-  { to: "/reports", label: "Analytics & Reports", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant"] },
-  { to: "/alerts", label: "System Alerts", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "worker"] },
+  { to: "/reports", label: "Analytics & Reports", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "veterinarian"] },
+  { to: "/alerts", label: "System Alerts", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "worker", "veterinarian"] },
 ];
 
 function Sidebar({ isOpen, onClose }) {

@@ -31,8 +31,14 @@ function Login() {
 
     try {
       setSubmitting(true);
-      await login(trimmedEmail, password);
-      navigate(from, { replace: true });
+      const response = await login(trimmedEmail, password);
+      const userRole = response?.user?.role_name || response?.user?.role;
+      const destination = location.state?.from?.pathname
+        ? location.state.from.pathname
+        : userRole === "worker"
+        ? "/my-work"
+        : "/dashboard";
+      navigate(destination, { replace: true });
     } catch (err) {
       setErrorMessage(err.message || "Failed to log in. Please check your credentials.");
       if (err.developerDetails) {

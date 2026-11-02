@@ -106,6 +106,131 @@ class AuthController
     }
 
     // ---------------------------------------------------------------
+    // GET /api/auth/invite
+    // ---------------------------------------------------------------
+
+    /**
+     * Validates an invite token and returns pre-populated metadata.
+     */
+    public function getInvite(): void
+    {
+        $token = trim((string) ($_GET['token'] ?? ''));
+        if ($token === '') {
+            respond(['success' => false, 'message' => 'Invite token is required.'], 422);
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT fm.id AS member_id, fm.farm_id, fm.user_id, fm.role_id, fm.status,
+                   u.name, u.email, f.name AS farm_name, r.name AS role_name
+            FROM farm_members fm
+            JOIN users u ON u.id = fm.user_id
+            JOIN farms f ON f.id = fm.farm_id
+            JOIN roles r ON r.id = fm.role_id
+            WHERE fm.invite_token = :token AND fm.status = 'invited'
+            LIMIT 1
+        ");
+        $stmt->execute([':token' => $token]);
+        $invite = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$invite) {
+            respond(['success' => false, 'message' => 'Invalid or expired invitation link.'], 404);
+        }
+
+        respond([
+            'success' => true,
+            'data'    => [
+                'token'     => $token,
+                'name'      => $invite['name'],
+                'email'     => $invite['email'],
+                'farm_name' => $invite['farm_name'],
+                'role_name' => $invite['role_name'],
+                'role_id'   => (int) $invite['role_id'],
+            ]
+        ]);
+    }
+
+    // ---------------------------------------------------------------
+    // POST /api/auth/accept-invite
+    // ---------------------------------------------------------------
+
+    /**
+     * Accepts an invitation, sets the user's password, activates their farm membership,
+     * and authenticates them immediately.
+     */
+    public function acceptInvite(): void
+    {
+        $body = $this->jsonBody();
+        $token    = trim((string) ($body['token'] ?? ''));
+        $password = (string) ($body['password'] ?? '');
+        $name     = trim((string) ($body['name'] ?? ''));
+
+        if ($token === '' || $password === '') {
+            respond(['success' => false, 'message' => 'Token and password are required.'], 422);
+        }
+
+        if (strlen($password) < 8 || strlen($password) > 72) {
+            respond(['success' => false, 'message' => 'Password must be between 8 and 72 characters.'], 422);
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT fm.id AS member_id, fm.farm_id, fm.user_id, fm.role_id,
+                   u.name, u.email, f.name AS farm_name, r.name AS role_name
+            FROM farm_members fm
+            JOIN users u ON u.id = fm.user_id
+            JOIN farms f ON f.id = fm.farm_id
+            JOIN roles r ON r.id = fm.role_id
+            WHERE fm.invite_token = :token AND fm.status = 'invited'
+            LIMIT 1
+        ");
+        $stmt->execute([':token' => $token]);
+        $invite = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$invite) {
+            respond(['success' => false, 'message' => 'Invalid or expired invitation link.'], 404);
+        }
+
+        $userId = (int) $invite['user_id'];
+        $farmId = (int) $invite['farm_id'];
+        $hash   = password_hash($password, PASSWORD_BCRYPT);
+
+        if ($name !== '') {
+            $upUser = $this->pdo->prepare("UPDATE users SET name = :name, password_hash = :hash WHERE id = :id");
+            $upUser->execute([':name' => $name, ':hash' => $hash, ':id' => $userId]);
+        } else {
+            $upUser = $this->pdo->prepare("UPDATE users SET password_hash = :hash WHERE id = :id");
+            $upUser->execute([':hash' => $hash, ':id' => $userId]);
+        }
+
+        // Activate farm membership and clear invite token
+        $upMember = $this->pdo->prepare("
+            UPDATE farm_members
+            SET status = 'active', invite_token = NULL
+            WHERE id = :id
+        ");
+        $upMember->execute([':id' => $invite['member_id']]);
+
+        $user = $this->users->findById($userId);
+
+        $jwtToken = JwtHelper::generate([
+            'sub'     => $userId,
+            'email'   => $user['email'],
+            'role'    => $user['role_name'],
+            'role_id' => (int) $user['role_id'],
+            'farm_id' => $farmId,
+        ]);
+
+        $this->audit->log('user.invite_accepted', $userId, 'farm_members', (int) $invite['member_id']);
+
+        respond([
+            'success' => true,
+            'message' => 'Invitation accepted! Welcome to the farm team.',
+            'token'   => $jwtToken,
+            'user'    => $this->publicUser($user),
+            'farm_id' => $farmId,
+        ]);
+    }
+
+    // ---------------------------------------------------------------
     // POST /api/auth/login
     // ---------------------------------------------------------------
 

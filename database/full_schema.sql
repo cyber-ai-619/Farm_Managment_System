@@ -1459,7 +1459,52 @@ ALTER TABLE irrigation_systems
     ADD COLUMN IF NOT EXISTS pivot_length_m         DECIMAL(8, 2)  NULL,
     ADD COLUMN IF NOT EXISTS pipe_diameter_mm       DECIMAL(6, 2)  NULL;
 
+-- ---------------------------------------------------------------------------
+-- SECTION: 020_farm_worker_subsystem_enhancements.sql
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE task_assignments
+    ADD COLUMN IF NOT EXISTS started_at       TIMESTAMP    NULL,
+    ADD COLUMN IF NOT EXISTS completion_notes TEXT         NULL,
+    ADD COLUMN IF NOT EXISTS verified_by      INT UNSIGNED NULL,
+    ADD COLUMN IF NOT EXISTS verified_at      TIMESTAMP    NULL;
+
+ALTER TABLE worker_attendance
+    ADD COLUMN IF NOT EXISTS clock_in_time  TIME         NULL,
+    ADD COLUMN IF NOT EXISTS clock_out_time TIME         NULL,
+    ADD COLUMN IF NOT EXISTS is_verified    TINYINT(1)   NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS verified_by    INT UNSIGNED NULL,
+    ADD COLUMN IF NOT EXISTS verified_at    TIMESTAMP    NULL;
+
+CREATE TABLE IF NOT EXISTS field_incidents (
+    id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    farm_id          INT UNSIGNED NOT NULL,
+    worker_id        INT UNSIGNED NULL,
+    reported_by      INT UNSIGNED NOT NULL,
+    field_id         INT UNSIGNED NULL,
+    type             ENUM('irrigation_leak', 'equipment_breakdown', 'pest_outbreak', 'livestock_injury', 'hazard', 'other') NOT NULL DEFAULT 'hazard',
+    severity         ENUM('low', 'medium', 'high', 'critical') NOT NULL DEFAULT 'medium',
+    title            VARCHAR(150) NOT NULL,
+    description      TEXT NULL,
+    status           ENUM('open', 'investigating', 'resolved') NOT NULL DEFAULT 'open',
+    resolution_notes TEXT NULL,
+    resolved_by      INT UNSIGNED NULL,
+    resolved_at      TIMESTAMP NULL,
+    created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_incident_farm        FOREIGN KEY (farm_id)     REFERENCES farms (id)   ON DELETE CASCADE,
+    CONSTRAINT fk_incident_worker      FOREIGN KEY (worker_id)   REFERENCES workers (id) ON DELETE SET NULL,
+    CONSTRAINT fk_incident_reporter    FOREIGN KEY (reported_by) REFERENCES users (id)   ON DELETE CASCADE,
+    CONSTRAINT fk_incident_field       FOREIGN KEY (field_id)    REFERENCES fields (id)  ON DELETE SET NULL,
+    CONSTRAINT fk_incident_resolver    FOREIGN KEY (resolved_by) REFERENCES users (id)   ON DELETE SET NULL,
+    INDEX idx_incident_farm   (farm_id),
+    INDEX idx_incident_worker (worker_id),
+    INDEX idx_incident_status (status),
+    INDEX idx_incident_type   (type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;
+
 
 
 
