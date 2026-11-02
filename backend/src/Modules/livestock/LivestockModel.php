@@ -42,9 +42,13 @@ class LivestockModel
     public function getAll(int $farmId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT a.*, b.name AS breed_name
+            'SELECT a.*, b.name AS breed_name,
+                    CONCAT(w.first_name, " ", w.last_name) AS vet_staff_name,
+                    COALESCE(a.veterinarian_name, CONCAT(w.first_name, " ", w.last_name)) AS attending_veterinarian,
+                    COALESCE(a.veterinarian_phone, w.phone) AS attending_veterinarian_phone
              FROM animals a
              LEFT JOIN breeds b ON b.id = a.breed_id
+             LEFT JOIN workers w ON w.id = a.veterinarian_id
              WHERE a.farm_id = :farm_id
              ORDER BY a.species, a.tag_number ASC'
         );
@@ -55,9 +59,13 @@ class LivestockModel
     public function getById(int $id): array|false
     {
         $stmt = $this->pdo->prepare(
-            'SELECT a.*, b.name AS breed_name
+            'SELECT a.*, b.name AS breed_name,
+                    CONCAT(w.first_name, " ", w.last_name) AS vet_staff_name,
+                    COALESCE(a.veterinarian_name, CONCAT(w.first_name, " ", w.last_name)) AS attending_veterinarian,
+                    COALESCE(a.veterinarian_phone, w.phone) AS attending_veterinarian_phone
              FROM animals a
              LEFT JOIN breeds b ON b.id = a.breed_id
+             LEFT JOIN workers w ON w.id = a.veterinarian_id
              WHERE a.id = :id
              LIMIT 1'
         );
@@ -70,25 +78,30 @@ class LivestockModel
         $stmt = $this->pdo->prepare(
             'INSERT INTO animals
                 (farm_id, breed_id, tag_number, name, species, gender,
-                 date_of_birth, weight_kg, purchase_price, purchase_date, source, status, notes)
+                 date_of_birth, weight_kg, purchase_price, purchase_date, source, status,
+                 veterinarian_name, veterinarian_phone, veterinarian_id, notes)
              VALUES
                 (:farm_id, :breed_id, :tag_number, :name, :species, :gender,
-                 :date_of_birth, :weight_kg, :purchase_price, :purchase_date, :source, :status, :notes)'
+                 :date_of_birth, :weight_kg, :purchase_price, :purchase_date, :source, :status,
+                 :veterinarian_name, :veterinarian_phone, :veterinarian_id, :notes)'
         );
         $stmt->execute([
-            ':farm_id'        => $data['farm_id'],
-            ':breed_id'       => $data['breed_id']       ?? null,
-            ':tag_number'     => $data['tag_number'],
-            ':name'           => $data['name']           ?? null,
-            ':species'        => $data['species'],
-            ':gender'         => $data['gender']         ?? 'unknown',
-            ':date_of_birth'  => $data['date_of_birth']  ?? null,
-            ':weight_kg'      => $data['weight_kg']      ?? null,
-            ':purchase_price' => $data['purchase_price'] ?? null,
-            ':purchase_date'  => $data['purchase_date']  ?? null,
-            ':source'         => $data['source']         ?? null,
-            ':status'         => $data['status']         ?? 'active',
-            ':notes'          => $data['notes']          ?? null,
+            ':farm_id'            => $data['farm_id'],
+            ':breed_id'           => !empty($data['breed_id']) ? (int) $data['breed_id'] : null,
+            ':tag_number'         => $data['tag_number'],
+            ':name'               => $data['name']               ?? null,
+            ':species'            => strtolower($data['species']),
+            ':gender'             => strtolower($data['gender'] ?? 'unknown'),
+            ':date_of_birth'      => !empty($data['date_of_birth']) ? $data['date_of_birth'] : (!empty($data['birth_date']) ? $data['birth_date'] : null),
+            ':weight_kg'          => !empty($data['weight_kg']) ? (float) $data['weight_kg'] : null,
+            ':purchase_price'     => !empty($data['purchase_price']) ? (float) $data['purchase_price'] : null,
+            ':purchase_date'      => !empty($data['purchase_date']) ? $data['purchase_date'] : null,
+            ':source'             => $data['source']             ?? null,
+            ':status'             => strtolower($data['status'] ?? 'active'),
+            ':veterinarian_name'  => $data['veterinarian_name']  ?? null,
+            ':veterinarian_phone' => $data['veterinarian_phone'] ?? null,
+            ':veterinarian_id'    => !empty($data['veterinarian_id']) ? (int) $data['veterinarian_id'] : null,
+            ':notes'              => $data['notes']              ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -97,30 +110,36 @@ class LivestockModel
     {
         $stmt = $this->pdo->prepare(
             'UPDATE animals SET
-                breed_id       = :breed_id,
-                tag_number     = :tag_number,
-                name           = :name,
-                gender         = :gender,
-                date_of_birth  = :date_of_birth,
-                date_of_death  = :date_of_death,
-                cause_of_death = :cause_of_death,
-                weight_kg      = :weight_kg,
-                status         = :status,
-                notes          = :notes
+                breed_id           = :breed_id,
+                tag_number         = :tag_number,
+                name               = :name,
+                gender             = :gender,
+                date_of_birth      = :date_of_birth,
+                date_of_death      = :date_of_death,
+                cause_of_death     = :cause_of_death,
+                weight_kg          = :weight_kg,
+                status             = :status,
+                veterinarian_name  = :veterinarian_name,
+                veterinarian_phone = :veterinarian_phone,
+                veterinarian_id    = :veterinarian_id,
+                notes              = :notes
              WHERE id = :id'
         );
         return $stmt->execute([
-            ':breed_id'       => $data['breed_id']       ?? null,
-            ':tag_number'     => $data['tag_number'],
-            ':name'           => $data['name']           ?? null,
-            ':gender'         => $data['gender']         ?? 'unknown',
-            ':date_of_birth'  => $data['date_of_birth']  ?? null,
-            ':date_of_death'  => $data['date_of_death']  ?? null,
-            ':cause_of_death' => $data['cause_of_death'] ?? null,
-            ':weight_kg'      => $data['weight_kg']      ?? null,
-            ':status'         => $data['status']         ?? 'active',
-            ':notes'          => $data['notes']          ?? null,
-            ':id'             => $id,
+            ':breed_id'           => !empty($data['breed_id']) ? (int) $data['breed_id'] : null,
+            ':tag_number'         => $data['tag_number'],
+            ':name'               => $data['name']           ?? null,
+            ':gender'             => strtolower($data['gender'] ?? 'unknown'),
+            ':date_of_birth'      => !empty($data['date_of_birth']) ? $data['date_of_birth'] : (!empty($data['birth_date']) ? $data['birth_date'] : null),
+            ':date_of_death'      => !empty($data['date_of_death']) ? $data['date_of_death'] : null,
+            ':cause_of_death'     => $data['cause_of_death'] ?? null,
+            ':weight_kg'          => !empty($data['weight_kg']) ? (float) $data['weight_kg'] : null,
+            ':status'             => strtolower($data['status'] ?? 'active'),
+            ':veterinarian_name'  => $data['veterinarian_name']  ?? null,
+            ':veterinarian_phone' => $data['veterinarian_phone'] ?? null,
+            ':veterinarian_id'    => !empty($data['veterinarian_id']) ? (int) $data['veterinarian_id'] : null,
+            ':notes'              => $data['notes']          ?? null,
+            ':id'                 => $id,
         ]);
     }
 
@@ -206,4 +225,38 @@ class LivestockModel
         ]);
         return (int) $this->pdo->lastInsertId();
     }
+
+    public function getVeterinarians(int $farmId): array
+    {
+        $vets = [];
+
+        // 1. From workers table with veterinarian role
+        $stmt = $this->pdo->prepare(
+            'SELECT id AS id, CONCAT(first_name, " ", last_name) AS name, phone, email, "staff_worker" AS type
+             FROM workers
+             WHERE farm_id = :farm_id AND role = "veterinarian" AND status = "active"
+             ORDER BY first_name ASC'
+        );
+        $stmt->execute([':farm_id' => $farmId]);
+        $workerVets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($workerVets as $wv) {
+            $vets[] = $wv;
+        }
+
+        // 2. From users table with veterinarian role
+        $stmtUsers = $this->pdo->query(
+            'SELECT u.id AS id, u.name, "" AS phone, u.email, "user_account" AS type
+             FROM users u
+             JOIN roles r ON r.id = u.role_id
+             WHERE r.name = "veterinarian" AND u.is_active = 1
+             ORDER BY u.name ASC'
+        );
+        $userVets = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($userVets as $uv) {
+            $vets[] = $uv;
+        }
+
+        return $vets;
+    }
 }
+

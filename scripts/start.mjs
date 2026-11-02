@@ -51,6 +51,7 @@ async function startBackend() {
     stdio: 'inherit',
     env: {
       ...process.env,
+      PHP_CLI_SERVER_WORKERS: process.env.PHP_CLI_SERVER_WORKERS || '4',
       DB_HOST: process.env.DB_HOST || '127.0.0.1',
       DB_PORT: process.env.DB_PORT || '3306',
       DB_DATABASE: process.env.DB_DATABASE || 'farm_management',

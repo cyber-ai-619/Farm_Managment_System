@@ -405,18 +405,61 @@ function AccountMenu() {
           <div className="profile-popover" onKeyDown={handleMenuKeyDown} role="menu" aria-label="Account options">
             <div className="profile-popover-summary">
               <Avatar user={user} size="large" />
-              <div>
-                <strong>{user?.name || "User"}</strong>
-                <span>{formatRole(role)}</span>
-                <span>{user?.email || ""}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ fontSize: "15px", color: "#122e20", display: "block" }}>{user?.name || "User"}</strong>
+                <span
+                  style={{
+                    display: "inline-block",
+                    marginTop: "3px",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    fontSize: "10.5px",
+                    fontWeight: 700,
+                    backgroundColor: "rgba(30, 70, 50, 0.1)",
+                    color: "#1E4632",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {formatRole(role)}
+                </span>
+                <span style={{ display: "block", marginTop: "3px", fontSize: "11.5px", color: "rgba(43, 38, 34, 0.6)", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {user?.email || ""}
+                </span>
               </div>
             </div>
+
+            <div style={{ height: "1px", backgroundColor: "rgba(30, 70, 50, 0.08)", margin: "12px -17px 8px" }} />
+
             <div className="profile-popover-actions">
-              <button role="menuitem" type="button" onClick={() => openDrawer("profile")}>Edit Profile</button>
-              <button role="menuitem" type="button" onClick={() => openDrawer("settings")}>Account Settings</button>
-              <Link role="menuitem" to="/alerts" onClick={() => setIsOpen(false)}>Notifications</Link>
-              <button role="menuitem" type="button" onClick={() => openDrawer("password")}>Change Password</button>
-              <button className="account-logout-action" role="menuitem" type="button" onClick={handleLogout}>Logout</button>
+              <button className="profile-popover-item" role="menuitem" type="button" onClick={() => openDrawer("profile")}>
+                <span className="popover-item-icon" aria-hidden="true">👤</span>
+                <span>Edit Profile</span>
+              </button>
+              <button className="profile-popover-item" role="menuitem" type="button" onClick={() => openDrawer("settings")}>
+                <span className="popover-item-icon" aria-hidden="true">⚙️</span>
+                <span>Account Settings</span>
+              </button>
+              <Link className="profile-popover-item" role="menuitem" to="/alerts" onClick={() => setIsOpen(false)}>
+                <span className="popover-item-icon" aria-hidden="true">🔔</span>
+                <span>Notifications</span>
+              </Link>
+              <button className="profile-popover-item" role="menuitem" type="button" onClick={() => openDrawer("password")}>
+                <span className="popover-item-icon" aria-hidden="true">🔒</span>
+                <span>Change Password</span>
+              </button>
+
+              <div style={{ height: "1px", backgroundColor: "rgba(30, 70, 50, 0.08)", margin: "6px -16px" }} />
+
+              <button
+                className="profile-popover-item account-logout-action"
+                role="menuitem"
+                type="button"
+                onClick={handleLogout}
+              >
+                <span className="popover-item-icon" aria-hidden="true">🚪</span>
+                <span>Sign Out</span>
+              </button>
             </div>
           </div>
         )}

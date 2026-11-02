@@ -29,21 +29,40 @@ class WeatherApiService
 
         $url = self::BASE_URL . '?' . $params;
 
-        $ctx = stream_context_create([
-            'http' => [
-                'timeout'    => 3.0,
-                'user_agent' => 'FFMS-Farm-Management/1.0',
-            ],
-        ]);
+        $json = false;
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CONNECTTIMEOUT => 2,
+                CURLOPT_TIMEOUT        => 3,
+                CURLOPT_USERAGENT      => 'FFMS-Farm-Management/1.0',
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+            $json = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            if ($httpCode !== 200) {
+                $json = false;
+            }
+        }
 
-        $json = @file_get_contents($url, false, $ctx);
+        if ($json === false) {
+            $ctx = stream_context_create([
+                'http' => [
+                    'timeout'    => 2.0,
+                    'user_agent' => 'FFMS-Farm-Management/1.0',
+                ],
+            ]);
+            $json = @file_get_contents($url, false, $ctx);
+        }
 
         if ($json === false) {
             // Graceful fallback if offline or no internet
             return $this->mockForecast($latitude, $longitude);
         }
 
-        $data = json_decode($json, true);
+        $data = json_decode((string)$json, true);
         return is_array($data) ? $data : $this->mockForecast($latitude, $longitude);
     }
 

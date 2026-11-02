@@ -247,7 +247,7 @@ function Labour() {
                       📞 {w.phone || "No phone recorded"}
                     </p>
                     <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--color-farm-green)", fontWeight: 600 }}>
-                      Rate: ${w.daily_rate || "20.00"}/day
+                      Rate: ZMW {w.daily_rate || "20.00"}/day
                     </p>
                   </div>
                 ))

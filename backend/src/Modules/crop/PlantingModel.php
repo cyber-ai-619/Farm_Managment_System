@@ -125,6 +125,20 @@ class PlantingModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getFertilizersByCrop(int $cropId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT fr.*, u.name AS applied_by_name
+             FROM fertilizer_records fr
+             JOIN planting_schedules p ON p.id = fr.planting_id
+             JOIN users u ON u.id = fr.applied_by
+             WHERE p.crop_id = :crop_id
+             ORDER BY fr.application_date DESC'
+        );
+        $stmt->execute([':crop_id' => $cropId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function createFertilizerRecord(array $data): int
     {
         $stmt = $this->pdo->prepare(

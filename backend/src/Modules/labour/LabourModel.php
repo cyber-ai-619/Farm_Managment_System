@@ -40,6 +40,22 @@ class LabourModel
 
     public function create(int $farmId, array $data): int
     {
+        $role = $data['role'] ?? null;
+        if (!$role && !empty($data['job_title'])) {
+            $jt = strtolower(trim((string)$data['job_title']));
+            if (str_contains($jt, 'vet')) $role = 'veterinarian';
+            elseif (str_contains($jt, 'supervis')) $role = 'supervisor';
+            elseif (str_contains($jt, 'tractor') || str_contains($jt, 'driver')) $role = 'tractor_driver';
+            elseif (str_contains($jt, 'agronom')) $role = 'agronomist';
+            elseif (str_contains($jt, 'tech')) $role = 'technician';
+            elseif (str_contains($jt, 'harvest')) $role = 'harvester';
+            else $role = 'field_worker';
+        }
+        $validRoles = ['field_worker','supervisor','tractor_driver','harvester','agronomist','technician','general_labour','veterinarian','other'];
+        if (!in_array($role, $validRoles)) {
+            $role = 'field_worker';
+        }
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO workers (farm_id, user_id, first_name, last_name, id_national_number, phone, email, role, employment_type, daily_rate, hire_date, status, emergency_contact, notes)
              VALUES (:farm_id, :user_id, :first_name, :last_name, :id_national_number, :phone, :email, :role, :employment_type, :daily_rate, :hire_date, :status, :emergency_contact, :notes)'
@@ -52,7 +68,7 @@ class LabourModel
             ':id_national_number' => $data['id_national_number'] ?? null,
             ':phone'              => $data['phone'] ?? null,
             ':email'              => $data['email'] ?? null,
-            ':role'               => $data['role'] ?? 'field_worker',
+            ':role'               => $role,
             ':employment_type'    => $data['employment_type'] ?? 'permanent',
             ':daily_rate'         => $data['daily_rate'] ?? 0.00,
             ':hire_date'          => $data['hire_date'] ?? date('Y-m-d'),

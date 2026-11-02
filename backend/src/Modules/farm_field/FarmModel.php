@@ -37,6 +37,30 @@ class FarmModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Return all farms accessible by a user (admin sees all, staff/owners see assigned farms). */
+    public function getForUser(int $userId, string $role): array
+    {
+        if ($role === 'admin') {
+            return $this->getAll(null);
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT DISTINCT f.*, u.name AS owner_name
+                 FROM farms f
+                 JOIN users u ON u.id = f.owner_id
+                 LEFT JOIN farm_members fm ON fm.farm_id = f.id AND fm.user_id = :user_id AND fm.status = "active"
+                 WHERE f.owner_id = :user_id OR fm.user_id = :user_id
+                 ORDER BY f.created_at DESC'
+            );
+            $stmt->execute([':user_id' => $userId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            // Fallback if farm_members table has not been migrated yet
+            return $this->getAll($userId);
+        }
+    }
+
     /** Return a single farm by ID (includes owner name). */
     public function getById(int $id): array|false
     {
@@ -49,6 +73,12 @@ class FarmModel
         );
         $stmt->execute([':id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function findById(int $id): ?array
+    {
+        $r = $this->getById($id);
+        return $r ?: null;
     }
 
     // -------------------------------------------------------------------------
@@ -72,7 +102,20 @@ class FarmModel
             ':total_area_ha' => $data['total_area_ha'] ?? null,
             ':description'   => $data['description']   ?? null,
         ]);
-        return (int) $this->pdo->lastInsertId();
+        $farmId = (int) $this->pdo->lastInsertId();
+
+        // Also record owner in farm_members junction table
+        try {
+            $memberStmt = $this->pdo->prepare(
+                'INSERT IGNORE INTO farm_members (farm_id, user_id, role_id, status)
+                 VALUES (:farm_id, :user_id, 2, "active")'
+            );
+            $memberStmt->execute([':farm_id' => $farmId, ':user_id' => $data['owner_id']]);
+        } catch (\Throwable) {
+            // Table may not exist yet in unmigrated environments
+        }
+
+        return $farmId;
     }
 
     // -------------------------------------------------------------------------
@@ -115,7 +158,7 @@ class FarmModel
     }
 
     // -------------------------------------------------------------------------
-    // OWNERSHIP CHECK
+    // OWNERSHIP & ACCESS CHECK
     // -------------------------------------------------------------------------
 
     /** Returns true if the given user owns this farm. */
@@ -126,5 +169,26 @@ class FarmModel
         );
         $stmt->execute([':farm_id' => $farmId, ':user_id' => $userId]);
         return (bool) $stmt->fetch();
+    }
+
+    /** Returns true if user has access to farm (owner, staff member, or admin). */
+    public function hasAccess(int $farmId, int $userId, string $role): bool
+    {
+        if ($role === 'admin') {
+            return true;
+        }
+        if ($this->ownedBy($farmId, $userId)) {
+            return true;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT id FROM farm_members WHERE farm_id = :farm_id AND user_id = :user_id AND status = "active" LIMIT 1'
+            );
+            $stmt->execute([':farm_id' => $farmId, ':user_id' => $userId]);
+            return (bool) $stmt->fetch();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }

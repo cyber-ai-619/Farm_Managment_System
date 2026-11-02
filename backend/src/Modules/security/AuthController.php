@@ -18,11 +18,13 @@ require_once __DIR__ . '/AuditLogger.php';
  */
 class AuthController
 {
+    private PDO         $pdo;
     private UserModel   $users;
     private AuditLogger $audit;
 
     public function __construct(PDO $pdo)
     {
+        $this->pdo   = $pdo;
         $this->users = new UserModel($pdo);
         $this->audit = new AuditLogger($pdo);
     }
@@ -33,46 +35,63 @@ class AuthController
 
     /**
      * Register a new user account.
-     *
-     * Request body (JSON):
-     *   { "name": "...", "email": "...", "password": "...", "role_id": 5 }
-     *
-     * role_id is optional; defaults to 5 (worker).
+     * Public self-registration is strictly scoped to Farm Owners (role 2).
+     * Automatically initializes an initial farm workspace for the owner.
      */
     public function register(): void
     {
         $body = $this->jsonBody();
 
         // Validate required fields
-        $name     = trim($body['name']     ?? '');
-        $email    = trim($body['email']    ?? '');
-        $password = $body['password']      ?? '';
-        $roleId   = (int) ($body['role_id'] ?? 5);
+        $name     = trim((string) ($body['name'] ?? ''));
+        $email    = strtolower(trim((string) ($body['email'] ?? '')));
+        $password = (string) ($body['password'] ?? '');
+        $farmName = trim((string) ($body['farm_name'] ?? ''));
 
         if ($name === '' || $email === '' || $password === '') {
-            respond(['success' => false, 'message' => 'name, email, and password are required.'], 422);
+            respond(['success' => false, 'message' => 'Name, email, and password are required.'], 422);
         }
 
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (strlen($name) > 150) {
+            respond(['success' => false, 'message' => 'Name cannot exceed 150 characters.'], 422);
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 255) {
             respond(['success' => false, 'message' => 'Invalid email address.'], 422);
         }
 
-        if (strlen($password) < 8) {
-            respond(['success' => false, 'message' => 'Password must be at least 8 characters.'], 422);
+        // Strictly enforce 8-72 character passwords to prevent Bcrypt CPU DoS attacks
+        if (strlen($password) < 8 || strlen($password) > 72) {
+            respond(['success' => false, 'message' => 'Password must be between 8 and 72 characters.'], 422);
         }
 
         if ($this->users->emailExists($email)) {
             respond(['success' => false, 'message' => 'An account with that email already exists.'], 409);
         }
 
+        // Self-registration is strictly for Farm Owners (role 2).
+        // Prevents privilege escalation where attackers submit role_id: 1 (admin).
+        $roleId = 2; // farm_owner
+
         $userId = $this->users->create($name, $email, $password, $roleId);
         $user   = $this->users->findById($userId);
+
+        // Auto-create initial farm for the new owner
+        require_once __DIR__ . '/../farm_field/FarmModel.php';
+        $farmModel = new FarmModel($this->pdo);
+        $farmName = $farmName !== '' ? $farmName : ($name . "'s Farm");
+        $farmId = $farmModel->create([
+            'owner_id'    => $userId,
+            'name'        => $farmName,
+            'description' => 'Primary farm created upon owner registration',
+        ]);
 
         $token = JwtHelper::generate([
             'sub'       => $userId,
             'email'     => $email,
             'role'      => $user['role_name'],
-            'role_id'   => $user['role_id'],
+            'role_id'   => (int) $user['role_id'],
+            'farm_id'   => $farmId,
         ]);
 
         $this->audit->log('user.registered', $userId, 'users', $userId);
@@ -82,6 +101,7 @@ class AuthController
             'message' => 'Account created successfully.',
             'token'   => $token,
             'user'    => $this->publicUser($user),
+            'farm_id' => $farmId,
         ], 201);
     }
 

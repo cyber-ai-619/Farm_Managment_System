@@ -34,15 +34,15 @@ export const authService = {
   },
 
   /**
-   * Register a new user account
-   * @param {object} param0 - { name, email, password, role_id }
+   * Register a new user account as a Farm Owner with an initial farm workspace
+   * @param {object} param0 - { name, email, password, farm_name }
    */
-  async register({ name, email, password, role_id = 5 }) {
+  async register({ name, email, password, farm_name }) {
     const data = await api.post("/api/auth/register", {
       name,
       email,
       password,
-      role_id: Number(role_id) || 5,
+      farm_name,
     });
     if (data.token) {
       localStorage.setItem("ffms_token", data.token);

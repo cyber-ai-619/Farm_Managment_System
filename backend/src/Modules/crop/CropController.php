@@ -164,16 +164,17 @@ class CropController
     // FERTILIZER RECORDS
     // =========================================================================
 
-    // GET /api/crops/{id}/fertilizer-records  →  needs planting_id query param
+    // GET /api/crops/{id}/fertilizer-records  →  optional planting_id query param
     // POST /api/crops/{crop_id}/fertilizer-records
     public function fertilizerRecords(int $cropId): void
     {
         requireAuth();
         $plantingId = (int) ($_GET['planting_id'] ?? 0);
-        if (!$plantingId) {
-            respond(['success' => false, 'message' => 'planting_id query param required.'], 422);
+        if ($plantingId > 0) {
+            respond(['success' => true, 'data' => $this->plantingModel->getFertilizersByPlanting($plantingId)]);
+        } else {
+            respond(['success' => true, 'data' => $this->plantingModel->getFertilizersByCrop($cropId)]);
         }
-        respond(['success' => true, 'data' => $this->plantingModel->getFertilizersByPlanting($plantingId)]);
     }
 
     public function storeFertilizerRecord(int $cropId): void

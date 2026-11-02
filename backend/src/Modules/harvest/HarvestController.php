@@ -87,6 +87,18 @@ class HarvestController
         respond(['success' => true, 'farm_id' => $farmId, 'yield_report' => $report]);
     }
 
+    public function summary(): void
+    {
+        $this->yieldReport();
+    }
+
+    public function indexByField(int $fieldId): void
+    {
+        requireAuth();
+        $records = $this->model->findByField($fieldId);
+        respond(['success' => true, 'count' => count($records), 'data' => $records]);
+    }
+
     private function jsonBody(): array
     {
         $raw = file_get_contents('php://input');

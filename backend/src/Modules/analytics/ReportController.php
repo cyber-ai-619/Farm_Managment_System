@@ -250,7 +250,7 @@ class ReportController
 
         $stmt = $this->pdo->prepare(
             'SELECT e.*,
-                    (SELECT COALESCE(SUM(cost), 0) FROM repair_history rh WHERE rh.equipment_id = e.id) AS total_repair_costs,
+                    (SELECT COALESCE(SUM(cost_amount), 0) FROM repair_history rh WHERE rh.equipment_id = e.id) AS total_repair_costs,
                     (SELECT COALESCE(SUM(litres_added), 0) FROM fuel_logs fl WHERE fl.equipment_id = e.id) AS total_fuel_litres
              FROM equipment e
              WHERE e.farm_id = :farm_id

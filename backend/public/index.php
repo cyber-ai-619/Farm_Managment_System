@@ -117,6 +117,25 @@ if (preg_match('#^/api/farms/(\d+)$#', $requestUri, $m)) {
     if ($requestMethod === 'DELETE') $ctrl->destroy($id);
 }
 
+// --- Farm Members & Team Access ---
+
+if (preg_match('#^/api/farms/(\d+)/members$#', $requestUri, $m)) {
+    require_once __DIR__ . '/../src/Modules/farm_field/FarmMemberController.php';
+    $ctrl   = new FarmMemberController($pdo);
+    $farmId = (int) $m[1];
+    if ($requestMethod === 'GET')  $ctrl->index($farmId);
+    if ($requestMethod === 'POST') $ctrl->store($farmId);
+}
+
+if (preg_match('#^/api/farms/(\d+)/members/(\d+)$#', $requestUri, $m)) {
+    require_once __DIR__ . '/../src/Modules/farm_field/FarmMemberController.php';
+    $ctrl     = new FarmMemberController($pdo);
+    $farmId   = (int) $m[1];
+    $memberId = (int) $m[2];
+    if ($requestMethod === 'PATCH' || $requestMethod === 'PUT') $ctrl->update($farmId, $memberId);
+    if ($requestMethod === 'DELETE') $ctrl->destroy($farmId, $memberId);
+}
+
 // --- Fields under a farm ---
 
 if (preg_match('#^/api/farms/(\d+)/fields$#', $requestUri, $m)) {
@@ -207,6 +226,11 @@ if ($requestUri === '/api/livestock/breeds' && $requestMethod === 'GET') {
 if ($requestUri === '/api/livestock/breeds' && $requestMethod === 'POST') {
     require_once __DIR__ . '/../src/Modules/livestock/LivestockController.php';
     (new LivestockController($pdo))->storeBreed();
+}
+
+if ($requestUri === '/api/livestock/veterinarians' && $requestMethod === 'GET') {
+    require_once __DIR__ . '/../src/Modules/livestock/LivestockController.php';
+    (new LivestockController($pdo))->veterinarians();
 }
 
 if ($requestUri === '/api/livestock' && $requestMethod === 'GET') {

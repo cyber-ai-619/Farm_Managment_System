@@ -19,10 +19,9 @@ class FarmController
     public function index(): void
     {
         $user = requireAuth();
-        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'accountant']);
+        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'accountant', 'worker']);
 
-        $ownerId = in_array($user['role'], ['admin']) ? null : (int) $user['sub'];
-        $farms   = $this->model->getAll($ownerId);
+        $farms = $this->model->getForUser((int) $user['sub'], (string) ($user['role'] ?? ''));
 
         respond(['success' => true, 'data' => $farms]);
     }

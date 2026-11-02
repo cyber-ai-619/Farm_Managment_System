@@ -22,6 +22,16 @@ import Suppliers from "./pages/Suppliers";
 import Storage from "./pages/Storage";
 import Reports from "./pages/Reports";
 import Alerts from "./pages/Alerts";
+import Team from "./pages/Team";
+
+const ROLES_ALL = ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "worker"];
+const ROLES_AGRI = ["admin", "farm_owner", "farm_manager", "agronomist"];
+const ROLES_OPS = ["admin", "farm_owner", "farm_manager"];
+const ROLES_FINANCE = ["admin", "farm_owner", "accountant"];
+const ROLES_SUPPLY = ["admin", "farm_owner", "farm_manager", "accountant"];
+const ROLES_FIELD_CREW = ["admin", "farm_owner", "farm_manager", "agronomist", "worker"];
+const ROLES_EQUIP_CREW = ["admin", "farm_owner", "farm_manager", "worker"];
+const ROLES_REPORTS = ["admin", "farm_owner", "farm_manager", "agronomist", "accountant"];
 
 function App() {
   return (
@@ -35,28 +45,29 @@ function App() {
           {/* Protected Application Routes */}
           <Route
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={ROLES_ALL}>
                 <DashboardLayout />
               </ProtectedRoute>
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/farm" element={<Farm />} />
-            <Route path="/crops" element={<Crops />} />
-            <Route path="/livestock" element={<Livestock />} />
-            <Route path="/irrigation" element={<Irrigation />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/tools" element={<Tools />} />
-            <Route path="/labour" element={<Labour />} />
-            <Route path="/pest-disease" element={<PestDisease />} />
-            <Route path="/weather" element={<Weather />} />
-            <Route path="/harvest" element={<Harvest />} />
-            <Route path="/sales" element={<Sales />} />
-            <Route path="/money" element={<Money />} />
-            <Route path="/suppliers" element={<Suppliers />} />
-            <Route path="/storage" element={<Storage />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/alerts" element={<Alerts />} />
+            <Route path="/farm" element={<ProtectedRoute allowedRoles={ROLES_AGRI}><Farm /></ProtectedRoute>} />
+            <Route path="/crops" element={<ProtectedRoute allowedRoles={ROLES_AGRI}><Crops /></ProtectedRoute>} />
+            <Route path="/livestock" element={<ProtectedRoute allowedRoles={ROLES_OPS}><Livestock /></ProtectedRoute>} />
+            <Route path="/irrigation" element={<ProtectedRoute allowedRoles={ROLES_FIELD_CREW}><Irrigation /></ProtectedRoute>} />
+            <Route path="/inventory" element={<ProtectedRoute allowedRoles={ROLES_SUPPLY}><Inventory /></ProtectedRoute>} />
+            <Route path="/tools" element={<ProtectedRoute allowedRoles={ROLES_EQUIP_CREW}><Tools /></ProtectedRoute>} />
+            <Route path="/labour" element={<ProtectedRoute allowedRoles={ROLES_OPS}><Labour /></ProtectedRoute>} />
+            <Route path="/team" element={<ProtectedRoute allowedRoles={["admin", "farm_owner"]}><Team /></ProtectedRoute>} />
+            <Route path="/pest-disease" element={<ProtectedRoute allowedRoles={ROLES_AGRI}><PestDisease /></ProtectedRoute>} />
+            <Route path="/weather" element={<ProtectedRoute allowedRoles={ROLES_FIELD_CREW}><Weather /></ProtectedRoute>} />
+            <Route path="/harvest" element={<ProtectedRoute allowedRoles={ROLES_AGRI}><Harvest /></ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute allowedRoles={ROLES_SUPPLY}><Sales /></ProtectedRoute>} />
+            <Route path="/money" element={<ProtectedRoute allowedRoles={ROLES_FINANCE}><Money /></ProtectedRoute>} />
+            <Route path="/suppliers" element={<ProtectedRoute allowedRoles={ROLES_SUPPLY}><Suppliers /></ProtectedRoute>} />
+            <Route path="/storage" element={<ProtectedRoute allowedRoles={ROLES_SUPPLY}><Storage /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute allowedRoles={ROLES_REPORTS}><Reports /></ProtectedRoute>} />
+            <Route path="/alerts" element={<ProtectedRoute allowedRoles={ROLES_ALL}><Alerts /></ProtectedRoute>} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -218,9 +218,9 @@ class SalesMarketController
     public function trends(): void
     {
         requireAuth();
-        $commodity = $_GET['commodity'] ?? '';
+        $commodity = trim($_GET['commodity'] ?? '');
         if ($commodity === '') {
-            respond(['success' => false, 'message' => 'commodity query parameter is required.'], 422);
+            $commodity = 'Maize';
         }
 
         $trends = $this->marketModel->getTrends($commodity);

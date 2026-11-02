@@ -1,8 +1,30 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+
+const NAV_ITEMS = [
+  { to: "/dashboard", label: "Dashboard", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "worker"] },
+  { to: "/farm", label: "Farms & Fields", roles: ["admin", "farm_owner", "farm_manager", "agronomist"] },
+  { to: "/crops", label: "Crops & Planting", roles: ["admin", "farm_owner", "farm_manager", "agronomist"] },
+  { to: "/livestock", label: "Livestock & Herds", roles: ["admin", "farm_owner", "farm_manager"] },
+  { to: "/irrigation", label: "Irrigation Systems", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "worker"] },
+  { to: "/inventory", label: "Inventory & Stock", roles: ["admin", "farm_owner", "farm_manager", "accountant"] },
+  { to: "/labour", label: "Labour & Tasks", roles: ["admin", "farm_owner", "farm_manager"] },
+  { to: "/team", label: "Farm Team & Access", roles: ["admin", "farm_owner"] },
+  { to: "/pest-disease", label: "Pest & Disease", roles: ["admin", "farm_owner", "farm_manager", "agronomist"] },
+  { to: "/weather", label: "Weather Station", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "worker"] },
+  { to: "/harvest", label: "Harvest Produce", roles: ["admin", "farm_owner", "farm_manager", "agronomist"] },
+  { to: "/sales", label: "Sales & Orders", roles: ["admin", "farm_owner", "farm_manager", "accountant"] },
+  { to: "/money", label: "Finance & Budgets", roles: ["admin", "farm_owner", "accountant"] },
+  { to: "/suppliers", label: "Suppliers & Procurement", roles: ["admin", "farm_owner", "farm_manager", "accountant"] },
+  { to: "/storage", label: "Storage & Warehouses", roles: ["admin", "farm_owner", "farm_manager", "accountant"] },
+  { to: "/reports", label: "Analytics & Reports", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant"] },
+  { to: "/alerts", label: "System Alerts", roles: ["admin", "farm_owner", "farm_manager", "agronomist", "accountant", "worker"] },
+];
 
 function Sidebar({ isOpen, onClose }) {
   const location = useLocation();
+  const { role } = useAuth();
   const [isMobileViewport, setIsMobileViewport] = useState(() => (
     typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches
   ));
@@ -18,25 +40,8 @@ function Sidebar({ isOpen, onClose }) {
     if (onClose) onClose();
   };
 
-  const navItems = [
-    { to: "/dashboard", label: "Dashboard" },
-    { to: "/farm", label: "Farms & Fields" },
-    { to: "/crops", label: "Crops & Planting" },
-    { to: "/livestock", label: "Livestock & Herds" },
-    { to: "/irrigation", label: "Irrigation Systems" },
-    { to: "/inventory", label: "Inventory & Stock" },
-    { to: "/tools", label: "Equipment & Fleet" },
-    { to: "/labour", label: "Labour & Tasks" },
-    { to: "/pest-disease", label: "Pest & Disease" },
-    { to: "/weather", label: "Weather Station" },
-    { to: "/harvest", label: "Harvest Produce" },
-    { to: "/sales", label: "Sales & Orders" },
-    { to: "/money", label: "Finance & Budgets" },
-    { to: "/suppliers", label: "Suppliers & Procurement" },
-    { to: "/storage", label: "Storage & Warehouses" },
-    { to: "/reports", label: "Analytics & Reports" },
-    { to: "/alerts", label: "System Alerts" },
-  ];
+  const userRole = role || "worker";
+  const visibleNavItems = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
 
   return (
     <>
@@ -62,7 +67,7 @@ function Sidebar({ isOpen, onClose }) {
           </button>
         </div>
         <nav className="sidebar-menu">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = location.pathname === item.to;
             return (
               <Link

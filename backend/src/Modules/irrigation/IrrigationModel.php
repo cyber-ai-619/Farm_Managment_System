@@ -21,10 +21,20 @@ class IrrigationModel
     // WATER SOURCES
     // =========================================================================
 
+    // =========================================================================
+    // WATER SOURCES
+    // =========================================================================
+
     public function findSourcesByFarm(int $farmId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT * FROM water_sources WHERE farm_id = :farm_id AND is_active = 1 ORDER BY name ASC'
+            'SELECT s.*,
+                    s.type AS source_type,
+                    s.capacity_litres AS capacity_liters,
+                    s.current_level_litres AS current_level_liters
+             FROM water_sources s
+             WHERE s.farm_id = :farm_id AND s.is_active = 1
+             ORDER BY s.name ASC'
         );
         $stmt->execute([':farm_id' => $farmId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -36,13 +46,20 @@ class IrrigationModel
             'INSERT INTO water_sources (farm_id, name, type, capacity_litres, current_level_litres, ph_level, location_description)
              VALUES (:farm_id, :name, :type, :capacity_litres, :current_level_litres, :ph_level, :location_description)'
         );
+
+        $type = strtolower(trim((string)($data['type'] ?? ($data['source_type'] ?? 'borehole'))));
+        if ($type === 'rainwater tank') $type = 'rainwater';
+        if ($type === 'reservoir') $type = 'dam';
+        $validTypes = ['borehole','well','river','dam','municipal','rainwater','canal','other'];
+        if (!in_array($type, $validTypes)) $type = 'other';
+
         $stmt->execute([
             ':farm_id'              => $farmId,
             ':name'                 => $data['name'],
-            ':type'                 => $data['type'] ?? 'borehole',
-            ':capacity_litres'      => $data['capacity_litres'] ?? null,
-            ':current_level_litres' => $data['current_level_litres'] ?? null,
-            ':ph_level'             => $data['ph_level'] ?? null,
+            ':type'                 => $type,
+            ':capacity_litres'      => !empty($data['capacity_litres']) ? (float)$data['capacity_litres'] : (!empty($data['capacity_liters']) ? (float)$data['capacity_liters'] : null),
+            ':current_level_litres' => !empty($data['current_level_litres']) ? (float)$data['current_level_litres'] : (!empty($data['current_level_liters']) ? (float)$data['current_level_liters'] : null),
+            ':ph_level'             => !empty($data['ph_level']) ? (float)$data['ph_level'] : null,
             ':location_description' => $data['location_description'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
@@ -55,7 +72,13 @@ class IrrigationModel
     public function findSystemsByFarm(int $farmId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT s.*, f.name AS field_name, ws.name AS source_name
+            'SELECT s.*,
+                    s.type AS system_type,
+                    f.name AS field_name,
+                    f.area_ha AS field_area_ha,
+                    ws.name AS source_name,
+                    ws.type AS source_type,
+                    ROUND(COALESCE(s.drip_lines_count * s.drip_line_length_m, (s.coverage_area_ha * 10000) / NULLIF(s.line_spacing_m, 0)), 1) AS total_drip_length_m
              FROM irrigation_systems s
              LEFT JOIN fields f ON f.id = s.field_id
              LEFT JOIN water_sources ws ON ws.id = s.water_source_id
@@ -69,7 +92,13 @@ class IrrigationModel
     public function findSystemById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT s.*, f.name AS field_name, ws.name AS source_name
+            'SELECT s.*,
+                    s.type AS system_type,
+                    f.name AS field_name,
+                    f.area_ha AS field_area_ha,
+                    ws.name AS source_name,
+                    ws.type AS source_type,
+                    ROUND(COALESCE(s.drip_lines_count * s.drip_line_length_m, (s.coverage_area_ha * 10000) / NULLIF(s.line_spacing_m, 0)), 1) AS total_drip_length_m
              FROM irrigation_systems s
              LEFT JOIN fields f ON f.id = s.field_id
              LEFT JOIN water_sources ws ON ws.id = s.water_source_id
@@ -83,41 +112,115 @@ class IrrigationModel
 
     public function createSystem(int $farmId, array $data): int
     {
+        $type = strtolower(trim((string)($data['type'] ?? ($data['system_type'] ?? 'drip'))));
+        if ($type === 'pivot') $type = 'center_pivot';
+        if ($type === 'center pivot') $type = 'center_pivot';
+        if ($type === 'micro spray' || $type === 'microspray') $type = 'micro_spray';
+        $validTypes = ['drip','sprinkler','center_pivot','flood','micro_spray','manual','other'];
+        if (!in_array($type, $validTypes)) $type = 'other';
+
+        $sourceId = !empty($data['water_source_id']) ? (int)$data['water_source_id'] : (!empty($data['source_id']) ? (int)$data['source_id'] : null);
+        $fieldId  = !empty($data['field_id']) ? (int)$data['field_id'] : null;
+
         $stmt = $this->pdo->prepare(
-            'INSERT INTO irrigation_systems (farm_id, field_id, water_source_id, name, type, flow_rate_lpm, status, installation_date, notes)
-             VALUES (:farm_id, :field_id, :water_source_id, :name, :type, :flow_rate_lpm, :status, :installation_date, :notes)'
+            'INSERT INTO irrigation_systems 
+                (farm_id, field_id, water_source_id, name, type, coverage_area_ha,
+                 drip_lines_count, drip_line_length_m, line_spacing_m, emitter_spacing_m,
+                 emitter_flow_rate_lph, filtration_type, sprinkler_heads_count,
+                 sprinkler_radius_m, operating_pressure_bar, pivot_spans_count,
+                 pivot_length_m, pipe_diameter_mm, flow_rate_lpm, status, installation_date, notes)
+             VALUES 
+                (:farm_id, :field_id, :water_source_id, :name, :type, :coverage_area_ha,
+                 :drip_lines_count, :drip_line_length_m, :line_spacing_m, :emitter_spacing_m,
+                 :emitter_flow_rate_lph, :filtration_type, :sprinkler_heads_count,
+                 :sprinkler_radius_m, :operating_pressure_bar, :pivot_spans_count,
+                 :pivot_length_m, :pipe_diameter_mm, :flow_rate_lpm, :status, :installation_date, :notes)'
         );
         $stmt->execute([
-            ':farm_id'           => $farmId,
-            ':field_id'          => $data['field_id'] ?? null,
-            ':water_source_id'   => $data['water_source_id'] ?? null,
-            ':name'              => $data['name'],
-            ':type'              => $data['type'] ?? 'drip',
-            ':flow_rate_lpm'     => $data['flow_rate_lpm'] ?? null,
-            ':status'            => $data['status'] ?? 'active',
-            ':installation_date' => $data['installation_date'] ?? null,
-            ':notes'             => $data['notes'] ?? null,
+            ':farm_id'                => $farmId,
+            ':field_id'               => $fieldId,
+            ':water_source_id'        => $sourceId,
+            ':name'                   => $data['name'],
+            ':type'                   => $type,
+            ':coverage_area_ha'       => !empty($data['coverage_area_ha']) ? (float)$data['coverage_area_ha'] : null,
+            ':drip_lines_count'       => !empty($data['drip_lines_count']) ? (int)$data['drip_lines_count'] : null,
+            ':drip_line_length_m'     => !empty($data['drip_line_length_m']) ? (float)$data['drip_line_length_m'] : null,
+            ':line_spacing_m'         => !empty($data['line_spacing_m']) ? (float)$data['line_spacing_m'] : null,
+            ':emitter_spacing_m'      => !empty($data['emitter_spacing_m']) ? (float)$data['emitter_spacing_m'] : null,
+            ':emitter_flow_rate_lph'  => !empty($data['emitter_flow_rate_lph']) ? (float)$data['emitter_flow_rate_lph'] : null,
+            ':filtration_type'        => $data['filtration_type'] ?? null,
+            ':sprinkler_heads_count'  => !empty($data['sprinkler_heads_count']) ? (int)$data['sprinkler_heads_count'] : null,
+            ':sprinkler_radius_m'     => !empty($data['sprinkler_radius_m']) ? (float)$data['sprinkler_radius_m'] : null,
+            ':operating_pressure_bar' => !empty($data['operating_pressure_bar']) ? (float)$data['operating_pressure_bar'] : null,
+            ':pivot_spans_count'      => !empty($data['pivot_spans_count']) ? (int)$data['pivot_spans_count'] : null,
+            ':pivot_length_m'         => !empty($data['pivot_length_m']) ? (float)$data['pivot_length_m'] : null,
+            ':pipe_diameter_mm'       => !empty($data['pipe_diameter_mm']) ? (float)$data['pipe_diameter_mm'] : null,
+            ':flow_rate_lpm'          => !empty($data['flow_rate_lpm']) ? (float)$data['flow_rate_lpm'] : null,
+            ':status'                 => $data['status'] ?? 'active',
+            ':installation_date'      => !empty($data['installation_date']) ? $data['installation_date'] : null,
+            ':notes'                  => $data['notes'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
 
     public function updateSystem(int $id, array $data): bool
     {
+        $type = strtolower(trim((string)($data['type'] ?? ($data['system_type'] ?? 'drip'))));
+        if ($type === 'pivot') $type = 'center_pivot';
+        if ($type === 'center pivot') $type = 'center_pivot';
+        if ($type === 'micro spray' || $type === 'microspray') $type = 'micro_spray';
+        $validTypes = ['drip','sprinkler','center_pivot','flood','micro_spray','manual','other'];
+        if (!in_array($type, $validTypes)) $type = 'other';
+
+        $sourceId = !empty($data['water_source_id']) ? (int)$data['water_source_id'] : (!empty($data['source_id']) ? (int)$data['source_id'] : null);
+        $fieldId  = !empty($data['field_id']) ? (int)$data['field_id'] : null;
+
         $stmt = $this->pdo->prepare(
             'UPDATE irrigation_systems
-             SET name = :name, type = :type, field_id = :field_id, water_source_id = :water_source_id,
-                 flow_rate_lpm = :flow_rate_lpm, status = :status, notes = :notes
+             SET name = :name,
+                 type = :type,
+                 field_id = :field_id,
+                 water_source_id = :water_source_id,
+                 coverage_area_ha = :coverage_area_ha,
+                 drip_lines_count = :drip_lines_count,
+                 drip_line_length_m = :drip_line_length_m,
+                 line_spacing_m = :line_spacing_m,
+                 emitter_spacing_m = :emitter_spacing_m,
+                 emitter_flow_rate_lph = :emitter_flow_rate_lph,
+                 filtration_type = :filtration_type,
+                 sprinkler_heads_count = :sprinkler_heads_count,
+                 sprinkler_radius_m = :sprinkler_radius_m,
+                 operating_pressure_bar = :operating_pressure_bar,
+                 pivot_spans_count = :pivot_spans_count,
+                 pivot_length_m = :pivot_length_m,
+                 pipe_diameter_mm = :pipe_diameter_mm,
+                 flow_rate_lpm = :flow_rate_lpm,
+                 status = :status,
+                 notes = :notes
              WHERE id = :id'
         );
         return $stmt->execute([
-            ':id'              => $id,
-            ':name'            => $data['name'],
-            ':type'            => $data['type'],
-            ':field_id'        => $data['field_id'] ?? null,
-            ':water_source_id' => $data['water_source_id'] ?? null,
-            ':flow_rate_lpm'   => $data['flow_rate_lpm'] ?? null,
-            ':status'          => $data['status'] ?? 'active',
-            ':notes'           => $data['notes'] ?? null,
+            ':id'                     => $id,
+            ':name'                   => $data['name'],
+            ':type'                   => $type,
+            ':field_id'               => $fieldId,
+            ':water_source_id'        => $sourceId,
+            ':coverage_area_ha'       => !empty($data['coverage_area_ha']) ? (float)$data['coverage_area_ha'] : null,
+            ':drip_lines_count'       => !empty($data['drip_lines_count']) ? (int)$data['drip_lines_count'] : null,
+            ':drip_line_length_m'     => !empty($data['drip_line_length_m']) ? (float)$data['drip_line_length_m'] : null,
+            ':line_spacing_m'         => !empty($data['line_spacing_m']) ? (float)$data['line_spacing_m'] : null,
+            ':emitter_spacing_m'      => !empty($data['emitter_spacing_m']) ? (float)$data['emitter_spacing_m'] : null,
+            ':emitter_flow_rate_lph'  => !empty($data['emitter_flow_rate_lph']) ? (float)$data['emitter_flow_rate_lph'] : null,
+            ':filtration_type'        => $data['filtration_type'] ?? null,
+            ':sprinkler_heads_count'  => !empty($data['sprinkler_heads_count']) ? (int)$data['sprinkler_heads_count'] : null,
+            ':sprinkler_radius_m'     => !empty($data['sprinkler_radius_m']) ? (float)$data['sprinkler_radius_m'] : null,
+            ':operating_pressure_bar' => !empty($data['operating_pressure_bar']) ? (float)$data['operating_pressure_bar'] : null,
+            ':pivot_spans_count'      => !empty($data['pivot_spans_count']) ? (int)$data['pivot_spans_count'] : null,
+            ':pivot_length_m'         => !empty($data['pivot_length_m']) ? (float)$data['pivot_length_m'] : null,
+            ':pipe_diameter_mm'       => !empty($data['pipe_diameter_mm']) ? (float)$data['pipe_diameter_mm'] : null,
+            ':flow_rate_lpm'          => !empty($data['flow_rate_lpm']) ? (float)$data['flow_rate_lpm'] : null,
+            ':status'                 => $data['status'] ?? 'active',
+            ':notes'                  => $data['notes'] ?? null,
         ]);
     }
 

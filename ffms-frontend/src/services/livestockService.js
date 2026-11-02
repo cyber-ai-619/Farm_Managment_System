@@ -80,6 +80,14 @@ export const livestockService = {
     const res = await api.post(`/api/livestock/${animalId}/feed-records`, data);
     return res.data;
   },
+
+  // --- Veterinarians & Staff Directory ---
+  async getVeterinarians(farmId) {
+    const query = farmId ? `?farm_id=${farmId}` : "";
+    const res = await api.get(`/api/livestock/veterinarians${query}`);
+    return res.data || [];
+  },
 };
 
 export default livestockService;
+

@@ -33,6 +33,22 @@ class HarvestModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function findByField(int $fieldId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT h.*, f.name AS field_name, c.name AS crop_name, cv.variety_name, u.name AS harvested_by_name
+             FROM harvest_records h
+             JOIN fields f ON f.id = h.field_id
+             JOIN crops c ON c.id = h.crop_id
+             LEFT JOIN crop_varieties cv ON cv.id = h.variety_id
+             JOIN users u ON u.id = h.harvested_by
+             WHERE h.field_id = :field_id
+             ORDER BY h.harvest_date DESC'
+        );
+        $stmt->execute([':field_id' => $fieldId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function findById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(

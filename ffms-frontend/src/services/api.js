@@ -25,11 +25,19 @@ function getFriendlyErrorMessage(status, rawMessage, endpoint) {
   const cleaned = stripHtml(rawMessage);
 
   if (status === 0) {
-    return "Cannot connect to the backend server. Please verify that XAMPP (Apache/MySQL) or your backend service is running.";
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1" &&
+      (API_BASE_URL.includes("localhost") || API_BASE_URL.includes("127.0.0.1"))
+    ) {
+      return `Configuration error: The production app is trying to connect to a local backend (${API_BASE_URL}). Please set the VITE_API_URL environment variable in Render to your backend URL (e.g. https://ffms-backend.onrender.com) and redeploy.`;
+    }
+    return "Cannot connect to the backend server. If using Render, your backend service may be waking up from sleep (cold start). Please check your backend service status or try again in a few moments.";
   }
 
   if (status === 503 || (cleaned && cleaned.toLowerCase().includes("database connection failed"))) {
-    return "Database service is currently unavailable. Please make sure MySQL is started in XAMPP.";
+    return "Database service is currently unavailable. Please verify that your MySQL database service is running and credentials are valid.";
   }
 
   if (status === 500) {

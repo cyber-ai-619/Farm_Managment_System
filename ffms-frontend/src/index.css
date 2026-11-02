@@ -628,7 +628,7 @@ h3 {
   color: var(--color-white);
 }
 
-.navbar-right button {
+.navbar-right > button:not(.welcome-trigger) {
   position: relative;
   border: 1px solid rgba(212,165,74,0.5);
   background: var(--soft-white);
@@ -641,7 +641,7 @@ h3 {
   transition: all 0.18s ease;
 }
 
-.navbar-right button:hover {
+.navbar-right > button:not(.welcome-trigger):hover {
   background: var(--color-gold-bright);
   transform: translateY(-1px);
   box-shadow: 0 6px 14px rgba(212,165,74,0.35);

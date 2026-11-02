@@ -56,6 +56,18 @@ class LivestockController
     }
 
     // =========================================================================
+    // VETERINARIANS DIRECTORY
+    // =========================================================================
+
+    // GET /api/livestock/veterinarians?farm_id=X
+    public function veterinarians(): void
+    {
+        requireAuth();
+        $farmId = (int) ($_GET['farm_id'] ?? 1);
+        respond(['success' => true, 'data' => $this->model->getVeterinarians($farmId)]);
+    }
+
+    // =========================================================================
     // ANIMALS
     // =========================================================================
 
@@ -63,7 +75,7 @@ class LivestockController
     public function index(): void
     {
         requireAuth();
-        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'worker']);
+        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'worker', 'veterinarian']);
 
         $farmId = (int) ($_GET['farm_id'] ?? 0);
         if (!$farmId) {
@@ -77,7 +89,7 @@ class LivestockController
     public function store(): void
     {
         requireAuth();
-        requireRole(['admin', 'farm_owner', 'farm_manager']);
+        requireRole(['admin', 'farm_owner', 'farm_manager', 'veterinarian']);
 
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $required = ['farm_id', 'tag_number', 'species'];
@@ -104,7 +116,7 @@ class LivestockController
     public function update(int $id): void
     {
         requireAuth();
-        requireRole(['admin', 'farm_owner', 'farm_manager']);
+        requireRole(['admin', 'farm_owner', 'farm_manager', 'veterinarian']);
 
         $animal = $this->getAnimalOrFail($id);
         $body   = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -144,18 +156,23 @@ class LivestockController
     public function storeVaccination(int $animalId): void
     {
         $user = requireAuth();
-        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
+        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'veterinarian']);
 
         $this->getAnimalOrFail($animalId);
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        if (empty($body['vaccine_name']) || empty($body['vaccination_date'])) {
-            respond(['success' => false, 'message' => 'vaccine_name and vaccination_date are required.'], 422);
+        $vaccineName     = $body['vaccine_name'] ?? null;
+        $vaccinationDate = $body['vaccination_date'] ?? ($body['administered_date'] ?? date('Y-m-d'));
+
+        if (empty($vaccineName)) {
+            respond(['success' => false, 'message' => 'vaccine_name is required.'], 422);
         }
 
         $id = $this->health->createVaccination(array_merge($body, [
-            'animal_id'       => $animalId,
-            'administered_by' => (int) $user['sub'],
+            'animal_id'        => $animalId,
+            'administered_by'  => (int) $user['sub'],
+            'vaccine_name'     => $vaccineName,
+            'vaccination_date' => $vaccinationDate,
         ]));
         $vaccination = $this->health->getVaccinationById($id);
         respond(['success' => true, 'message' => 'Vaccination recorded.', 'data' => $vaccination], 201);
@@ -177,18 +194,25 @@ class LivestockController
     public function storeTreatment(int $animalId): void
     {
         $user = requireAuth();
-        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
+        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'veterinarian']);
 
         $this->getAnimalOrFail($animalId);
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        if (empty($body['diagnosis']) || empty($body['treatment_name']) || empty($body['treatment_date'])) {
-            respond(['success' => false, 'message' => 'diagnosis, treatment_name, and treatment_date are required.'], 422);
+        $diagnosis     = $body['diagnosis'] ?? ($body['disease_diagnosed'] ?? null);
+        $treatmentName = $body['treatment_name'] ?? ($body['procedure_name'] ?? ($body['medication'] ?? 'Medical Therapy'));
+        $treatmentDate = $body['treatment_date'] ?? date('Y-m-d');
+
+        if (empty($diagnosis)) {
+            respond(['success' => false, 'message' => 'diagnosis is required.'], 422);
         }
 
         $id = $this->health->createTreatment(array_merge($body, [
             'animal_id'       => $animalId,
             'administered_by' => (int) $user['sub'],
+            'diagnosis'       => $diagnosis,
+            'treatment_name'  => $treatmentName,
+            'treatment_date'  => $treatmentDate,
         ]));
         $treatment = $this->health->getTreatmentById($id);
         respond(['success' => true, 'message' => 'Treatment recorded.', 'data' => $treatment], 201);

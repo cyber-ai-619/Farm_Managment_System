@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
 import Logo from "./Logo";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { Link } from "react-router-dom";
 import alertService from "../services/alertService";
 import AccountMenu from "./AccountMenu";
 
 function Navbar({ onToggleSidebar, sidebarOpen = false }) {
-  const navigate = useNavigate();
-  const { role, logout } = useAuth();
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
 
   useEffect(() => {
@@ -32,19 +29,6 @@ function Navbar({ onToggleSidebar, sidebarOpen = false }) {
     };
   }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/");
-  };
-
-  const formatRole = (r) => {
-    if (!r) return "User";
-    return r
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
   return (
     <header className="navbar">
       <div className="navbar-left">
@@ -64,30 +48,29 @@ function Navbar({ onToggleSidebar, sidebarOpen = false }) {
         </div>
       </div>
 
-      <div className="navbar-right">
+      <div className="navbar-right" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         <Link
           to="/alerts"
           style={{
             position: "relative",
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "6px 12px",
-            borderRadius: "8px",
-            backgroundColor: "rgba(255, 255, 255, 0.1)",
+            padding: "7px 14px",
+            borderRadius: "20px",
+            backgroundColor: "rgba(255, 255, 255, 0.08)",
             border: "1px solid rgba(212, 165, 74, 0.3)",
             color: "var(--color-gold, #D4A54A)",
             textDecoration: "none",
-            fontSize: "14px",
-            fontWeight: 600,
-            marginRight: "10px",
+            fontSize: "13px",
+            fontWeight: 700,
+            transition: "all 0.18s ease",
           }}
           title="System Alerts"
         >
-          🔔 Alerts
+          <span>🔔 Alerts</span>
           {unreadAlertsCount > 0 && (
             <span
-              className="navbar-role-badge"
               style={{
                 marginLeft: "6px",
                 padding: "2px 6px",
@@ -96,6 +79,7 @@ function Navbar({ onToggleSidebar, sidebarOpen = false }) {
                 fontWeight: 700,
                 backgroundColor: "#C0392B",
                 color: "#FFF",
+                lineHeight: "1",
               }}
             >
               {unreadAlertsCount}
@@ -103,27 +87,8 @@ function Navbar({ onToggleSidebar, sidebarOpen = false }) {
           )}
         </Link>
 
+        {/* Consolidated Profile & Account Menu */}
         <AccountMenu />
-        <span
-          style={{
-            fontFamily: "'Manrope', 'Segoe UI', sans-serif",
-            fontStyle: "normal",
-            padding: "0.25rem 0.65rem",
-            borderRadius: "12px",
-            fontSize: "0.75rem",
-            fontWeight: 700,
-            backgroundColor: "rgba(212, 165, 74, 0.2)",
-            color: "var(--color-gold, #D4A54A)",
-            border: "1px solid rgba(212, 165, 74, 0.4)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-          }}
-        >
-          {formatRole(role)}
-        </span>
-        <button type="button" className="navbar-logout" onClick={handleLogout}>
-          Logout
-        </button>
       </div>
     </header>
   );

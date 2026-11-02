@@ -419,7 +419,7 @@ textarea:focus-visible {
     font-size: 10px !important;
   }
 
-  .navbar-right button {
+  .navbar-right > button:not(.welcome-trigger) {
     min-height: 44px;
     padding: 7px 10px;
     font-size: 12px;
@@ -557,7 +557,7 @@ textarea:focus-visible {
     height: 44px;
   }
 
-  .navbar-right button {
+  .navbar-right > button:not(.welcome-trigger) {
     padding: 6px 8px;
   }
 
