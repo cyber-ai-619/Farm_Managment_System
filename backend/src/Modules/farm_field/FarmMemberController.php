@@ -41,6 +41,7 @@ class FarmMemberController
                     INDEX idx_farm_members_user (user_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             ");
+            $this->pdo->exec("ALTER TABLE farm_members ADD COLUMN IF NOT EXISTS invite_token VARCHAR(64) NULL AFTER status");
         } catch (\Throwable) {
             // Ignore schema creation errors if permissions are restricted
         }
@@ -55,17 +56,31 @@ class FarmMemberController
             respond(['success' => false, 'message' => 'You do not have permission to view members for this farm.'], 403);
         }
 
-        $stmt = $this->pdo->prepare("
-            SELECT fm.id, fm.farm_id, fm.user_id, fm.role_id, fm.status, fm.invite_token, fm.created_at,
-                   u.name, u.email, u.phone, r.name AS role_name
-            FROM farm_members fm
-            JOIN users u ON u.id = fm.user_id
-            JOIN roles r ON r.id = fm.role_id
-            WHERE fm.farm_id = :farm_id
-            ORDER BY fm.created_at ASC
-        ");
-        $stmt->execute([':farm_id' => $farmId]);
-        $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT fm.id, fm.farm_id, fm.user_id, fm.role_id, fm.status, fm.invite_token, fm.created_at,
+                       u.name, u.email, u.phone, r.name AS role_name
+                FROM farm_members fm
+                JOIN users u ON u.id = fm.user_id
+                JOIN roles r ON r.id = fm.role_id
+                WHERE fm.farm_id = :farm_id
+                ORDER BY fm.created_at ASC
+            ");
+            $stmt->execute([':farm_id' => $farmId]);
+            $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            $stmt = $this->pdo->prepare("
+                SELECT fm.id, fm.farm_id, fm.user_id, fm.role_id, fm.status, NULL AS invite_token, fm.created_at,
+                       u.name, u.email, u.phone, r.name AS role_name
+                FROM farm_members fm
+                JOIN users u ON u.id = fm.user_id
+                JOIN roles r ON r.id = fm.role_id
+                WHERE fm.farm_id = :farm_id
+                ORDER BY fm.created_at ASC
+            ");
+            $stmt->execute([':farm_id' => $farmId]);
+            $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
 
         respond(['success' => true, 'count' => count($members), 'data' => $members]);
     }
@@ -129,17 +144,30 @@ class FarmMemberController
         }
 
         // Insert into farm_members
-        $insertStmt = $this->pdo->prepare("
-            INSERT INTO farm_members (farm_id, user_id, role_id, status, invite_token)
-            VALUES (:farm_id, :user_id, :role_id, :status, :invite_token)
-        ");
-        $insertStmt->execute([
-            ':farm_id'      => $farmId,
-            ':user_id'      => $userId,
-            ':role_id'      => $roleId,
-            ':status'       => $status,
-            ':invite_token' => $inviteToken,
-        ]);
+        try {
+            $insertStmt = $this->pdo->prepare("
+                INSERT INTO farm_members (farm_id, user_id, role_id, status, invite_token)
+                VALUES (:farm_id, :user_id, :role_id, :status, :invite_token)
+            ");
+            $insertStmt->execute([
+                ':farm_id'      => $farmId,
+                ':user_id'      => $userId,
+                ':role_id'      => $roleId,
+                ':status'       => $status,
+                ':invite_token' => $inviteToken,
+            ]);
+        } catch (\Throwable) {
+            $insertStmt = $this->pdo->prepare("
+                INSERT INTO farm_members (farm_id, user_id, role_id, status)
+                VALUES (:farm_id, :user_id, :role_id, :status)
+            ");
+            $insertStmt->execute([
+                ':farm_id' => $farmId,
+                ':user_id' => $userId,
+                ':role_id' => $roleId,
+                ':status'  => $status,
+            ]);
+        }
         $memberId = (int) $this->pdo->lastInsertId();
 
         $this->audit->log('farm.member_added', (int) $user['sub'], 'farm_members', $memberId);
