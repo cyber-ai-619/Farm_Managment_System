@@ -14,12 +14,14 @@ require_once __DIR__ . '/../security/AuditLogger.php';
  */
 class SuppliersProcurementController
 {
+    private PDO              $pdo;
     private SupplierModel    $supplierModel;
     private ProcurementModel $procurementModel;
     private AuditLogger      $audit;
 
     public function __construct(PDO $pdo)
     {
+        $this->pdo              = $pdo;
         $this->supplierModel    = new SupplierModel($pdo);
         $this->procurementModel = new ProcurementModel($pdo);
         $this->audit            = new AuditLogger($pdo);
@@ -32,7 +34,7 @@ class SuppliersProcurementController
     public function indexSuppliers(): void
     {
         requireAuth();
-        $farmId   = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId   = resolveFarmId($_GET['farm_id'] ?? null);
         $category = $_GET['category'] ?? null;
 
         $suppliers = $this->supplierModel->findAll($farmId, $category);
@@ -58,7 +60,7 @@ class SuppliersProcurementController
             respond(['success' => false, 'message' => 'Supplier name is required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $id = $this->supplierModel->create($farmId, $body);
         $this->audit->log('supplier.created', (int) $user['sub'], 'suppliers', $id);
 
@@ -97,7 +99,15 @@ class SuppliersProcurementController
             respond(['success' => false, 'message' => 'item_description and quoted_price are required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        if (empty($body['farm_id'])) {
+            $stmt = $this->pdo->prepare('SELECT farm_id FROM suppliers WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $supplierId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $farmId = $row ? (int) $row['farm_id'] : resolveFarmId();
+        } else {
+            $farmId = (int) $body['farm_id'];
+        }
+
         $id = $this->supplierModel->createQuotation($supplierId, $farmId, $body);
         $this->audit->log('quotation.created', (int) $user['sub'], 'supplier_quotations', $id);
 
@@ -111,7 +121,7 @@ class SuppliersProcurementController
     public function indexOrders(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $status = $_GET['status'] ?? null;
 
         $orders = $this->procurementModel->findAll($farmId, $status);
@@ -137,7 +147,7 @@ class SuppliersProcurementController
             respond(['success' => false, 'message' => 'supplier_id is required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $items  = $body['items'] ?? [];
 
         try {

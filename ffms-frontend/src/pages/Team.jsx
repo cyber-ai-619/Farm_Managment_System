@@ -6,10 +6,11 @@ import Loading from "../components/Loading";
 import { useAuth } from "../hooks/useAuth";
 
 const ROLE_OPTIONS = [
-  { id: 3, label: "Farm Manager", desc: "Full operational management, shift scheduling, and field activities." },
-  { id: 4, label: "Agronomist", desc: "Crop scouting, pest & disease reports, soil and harvest recommendations." },
-  { id: 6, label: "Accountant / Auditor", desc: "Financial ledgers, sales orders, purchase orders, and budgets." },
-  { id: 5, label: "Field Worker / Operator", desc: "Daily task execution, equipment operation, and attendance logging." },
+  { id: 3, name: "farm_manager", label: "Farm Manager", desc: "Full operational management, shift scheduling, and field activities." },
+  { id: 4, name: "agronomist", label: "Agronomist", desc: "Crop scouting, pest & disease reports, soil and harvest recommendations." },
+  { id: 7, name: "veterinarian", label: "Veterinarian", desc: "Livestock health records, vaccinations, treatments, and breeding oversight." },
+  { id: 6, name: "accountant", label: "Accountant / Auditor", desc: "Financial ledgers, sales orders, purchase orders, and budgets." },
+  { id: 5, name: "worker", label: "Field Worker / Operator", desc: "Daily task execution, equipment operation, and attendance logging." },
 ];
 
 function Team() {
@@ -441,10 +442,10 @@ function Team() {
         {generatedInviteLink ? (
           <div>
             <div style={{ textAlign: "center", padding: "16px 0" }}>
-              <div style={{ fontSize: "40px", marginBottom: "12px" }}>🎉</div>
-              <h3 style={{ margin: 0, color: "#1E4632" }}>Invitation Ready!</h3>
-              <p style={{ color: "rgba(43, 38, 34, 0.7)", margin: "8px 0 16px" }}>
-                Share this link with <strong>{inviteForm.name}</strong> to let them join your farm team:
+              <div style={{ fontSize: "40px", marginBottom: "12px" }}>📬</div>
+              <h3 style={{ margin: 0, color: "#1E4632" }}>Invitation Dispatched!</h3>
+              <p style={{ color: "rgba(43, 38, 34, 0.8)", margin: "8px 0 16px" }}>
+                An invitation email has been sent to <strong>{inviteForm.email}</strong>. You can also copy and share this link directly with <strong>{inviteForm.name}</strong>:
               </p>
               <div
                 style={{

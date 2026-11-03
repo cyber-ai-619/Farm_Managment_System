@@ -110,6 +110,13 @@ class IrrigationModel
         return $row ?: null;
     }
 
+    private function normalizeSystemStatus(mixed $val): string
+    {
+        $status = strtolower(trim((string) ($val ?? 'active')));
+        $allowed = ['active', 'inactive', 'maintenance', 'faulty'];
+        return in_array($status, $allowed, true) ? $status : 'active';
+    }
+
     public function createSystem(int $farmId, array $data): int
     {
         $type = strtolower(trim((string)($data['type'] ?? ($data['system_type'] ?? 'drip'))));
@@ -156,7 +163,7 @@ class IrrigationModel
             ':pivot_length_m'         => !empty($data['pivot_length_m']) ? (float)$data['pivot_length_m'] : null,
             ':pipe_diameter_mm'       => !empty($data['pipe_diameter_mm']) ? (float)$data['pipe_diameter_mm'] : null,
             ':flow_rate_lpm'          => !empty($data['flow_rate_lpm']) ? (float)$data['flow_rate_lpm'] : null,
-            ':status'                 => $data['status'] ?? 'active',
+            ':status'                 => $this->normalizeSystemStatus($data['status'] ?? 'active'),
             ':installation_date'      => !empty($data['installation_date']) ? $data['installation_date'] : null,
             ':notes'                  => $data['notes'] ?? null,
         ]);
@@ -219,7 +226,7 @@ class IrrigationModel
             ':pivot_length_m'         => !empty($data['pivot_length_m']) ? (float)$data['pivot_length_m'] : null,
             ':pipe_diameter_mm'       => !empty($data['pipe_diameter_mm']) ? (float)$data['pipe_diameter_mm'] : null,
             ':flow_rate_lpm'          => !empty($data['flow_rate_lpm']) ? (float)$data['flow_rate_lpm'] : null,
-            ':status'                 => $data['status'] ?? 'active',
+            ':status'                 => $this->normalizeSystemStatus($data['status'] ?? 'active'),
             ':notes'                  => $data['notes'] ?? null,
         ]);
     }
@@ -250,19 +257,26 @@ class IrrigationModel
 
     public function createSchedule(int $systemId, int $userId, array $data): int
     {
+        $freq = strtolower(trim((string) ($data['frequency'] ?? 'daily')));
+        $allowedFreq = ['daily', 'twice_daily', 'alternate_days', 'weekly', 'custom'];
+        if (!in_array($freq, $allowedFreq, true)) {
+            $freq = 'daily';
+        }
+
         $stmt = $this->pdo->prepare(
-            'INSERT INTO irrigation_schedules (system_id, field_id, created_by, start_time, duration_minutes, target_volume_litres, frequency, days_of_week, notes)
-             VALUES (:system_id, :field_id, :created_by, :start_time, :duration_minutes, :target_volume_litres, :frequency, :days_of_week, :notes)'
+            'INSERT INTO irrigation_schedules (system_id, field_id, created_by, start_time, duration_minutes, target_volume_litres, frequency, days_of_week, next_run, notes)
+             VALUES (:system_id, :field_id, :created_by, :start_time, :duration_minutes, :target_volume_litres, :frequency, :days_of_week, :next_run, :notes)'
         );
         $stmt->execute([
             ':system_id'            => $systemId,
-            ':field_id'             => $data['field_id'],
+            ':field_id'             => (int) $data['field_id'],
             ':created_by'           => $userId,
             ':start_time'           => $data['start_time'],
             ':duration_minutes'     => (int) ($data['duration_minutes'] ?? 60),
-            ':target_volume_litres' => $data['target_volume_litres'] ?? null,
-            ':frequency'            => $data['frequency'] ?? 'daily',
+            ':target_volume_litres' => ($data['target_volume_litres'] ?? '') !== '' ? (float) $data['target_volume_litres'] : null,
+            ':frequency'            => $freq,
             ':days_of_week'         => $data['days_of_week'] ?? null,
+            ':next_run'             => ($data['next_run'] ?? '') !== '' ? $data['next_run'] : null,
             ':notes'                => $data['notes'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
@@ -287,18 +301,20 @@ class IrrigationModel
 
     public function logConsumption(int $systemId, int $userId, array $data): int
     {
+        $costVal = $data['cost_amount'] ?? ($data['cost'] ?? '');
         $stmt = $this->pdo->prepare(
-            'INSERT INTO water_consumption (system_id, field_id, recorded_by, volume_litres, duration_minutes, cost_amount, logged_date, notes)
-             VALUES (:system_id, :field_id, :recorded_by, :volume_litres, :duration_minutes, :cost_amount, :logged_date, :notes)'
+            'INSERT INTO water_consumption (system_id, field_id, schedule_id, recorded_by, volume_litres, duration_minutes, cost_amount, logged_date, notes)
+             VALUES (:system_id, :field_id, :schedule_id, :recorded_by, :volume_litres, :duration_minutes, :cost_amount, :logged_date, :notes)'
         );
         $stmt->execute([
             ':system_id'        => $systemId,
-            ':field_id'         => $data['field_id'] ?? null,
+            ':field_id'         => ($data['field_id'] ?? '') !== '' ? (int) $data['field_id'] : null,
+            ':schedule_id'      => ($data['schedule_id'] ?? '') !== '' ? (int) $data['schedule_id'] : null,
             ':recorded_by'      => $userId,
-            ':volume_litres'    => $data['volume_litres'],
-            ':duration_minutes' => $data['duration_minutes'] ?? null,
-            ':cost_amount'      => $data['cost_amount'] ?? 0.00,
-            ':logged_date'      => $data['logged_date'] ?? date('Y-m-d'),
+            ':volume_litres'    => (float) $data['volume_litres'],
+            ':duration_minutes' => ($data['duration_minutes'] ?? '') !== '' ? (int) $data['duration_minutes'] : null,
+            ':cost_amount'      => $costVal !== '' && $costVal !== null ? (float) $costVal : 0.00,
+            ':logged_date'      => !empty($data['logged_date']) ? $data['logged_date'] : date('Y-m-d'),
             ':notes'            => $data['notes'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();

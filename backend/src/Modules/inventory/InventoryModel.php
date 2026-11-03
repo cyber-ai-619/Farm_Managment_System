@@ -17,9 +17,34 @@ class InventoryModel
         $this->pdo = $pdo;
     }
 
+    private function normalizeCategory(mixed $val): string
+    {
+        $cat = strtolower(trim((string) ($val ?? 'other')));
+        $map = [
+            'fertilizer'     => 'fertilizers',
+            'seed'           => 'seeds',
+            'pesticide'      => 'chemicals',
+            'chemical'       => 'chemicals',
+            'feed'           => 'animal_feed',
+            'equipment part' => 'equipment_parts',
+            'equipment_part' => 'equipment_parts',
+            'tool'           => 'tools',
+            'medicine'       => 'vet_medicine',
+        ];
+        if (isset($map[$cat])) {
+            $cat = $map[$cat];
+        }
+        $allowed = [
+            'seeds', 'fertilizers', 'chemicals', 'animal_feed', 'vet_medicine',
+            'packaging', 'fuel', 'tools', 'equipment_parts', 'other',
+        ];
+        return in_array($cat, $allowed, true) ? $cat : 'other';
+    }
+
     public function findByFarm(int $farmId, ?string $category = null): array
     {
-        $sql = 'SELECT * FROM inventory_items WHERE farm_id = :farm_id AND is_active = 1';
+        $sql = 'SELECT *, quantity_on_hand AS quantity, unit_of_measure AS unit, reorder_level AS reorder_threshold
+                FROM inventory_items WHERE farm_id = :farm_id AND is_active = 1';
         $params = [':farm_id' => $farmId];
 
         if ($category !== null && $category !== '') {
@@ -35,7 +60,10 @@ class InventoryModel
 
     public function findById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM inventory_items WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare(
+            'SELECT *, quantity_on_hand AS quantity, unit_of_measure AS unit, reorder_level AS reorder_threshold
+             FROM inventory_items WHERE id = :id LIMIT 1'
+        );
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -44,7 +72,8 @@ class InventoryModel
     public function findLowStock(int $farmId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT * FROM inventory_items
+            'SELECT *, quantity_on_hand AS quantity, unit_of_measure AS unit, reorder_level AS reorder_threshold
+             FROM inventory_items
              WHERE farm_id = :farm_id AND is_active = 1 AND quantity_on_hand <= reorder_level
              ORDER BY quantity_on_hand ASC'
         );
@@ -54,6 +83,11 @@ class InventoryModel
 
     public function create(int $farmId, array $data): int
     {
+        $qty = $data['quantity_on_hand'] ?? ($data['quantity'] ?? 0.00);
+        $unit = $data['unit_of_measure'] ?? ($data['unit'] ?? 'units');
+        $reorder = $data['reorder_level'] ?? ($data['reorder_threshold'] ?? 10.00);
+        $unitCost = $data['unit_cost'] ?? 0.00;
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO inventory_items (farm_id, name, category, sku, quantity_on_hand, unit_of_measure, reorder_level, unit_cost, storage_location, expiry_date, supplier_name)
              VALUES (:farm_id, :name, :category, :sku, :quantity_on_hand, :unit_of_measure, :reorder_level, :unit_cost, :storage_location, :expiry_date, :supplier_name)'
@@ -61,14 +95,14 @@ class InventoryModel
         $stmt->execute([
             ':farm_id'          => $farmId,
             ':name'             => $data['name'],
-            ':category'         => $data['category'] ?? 'other',
+            ':category'         => $this->normalizeCategory($data['category'] ?? 'other'),
             ':sku'              => $data['sku'] ?? null,
-            ':quantity_on_hand' => $data['quantity_on_hand'] ?? 0.00,
-            ':unit_of_measure'  => $data['unit_of_measure'] ?? 'units',
-            ':reorder_level'    => $data['reorder_level'] ?? 10.00,
-            ':unit_cost'        => $data['unit_cost'] ?? 0.00,
+            ':quantity_on_hand' => $qty !== '' && $qty !== null ? (float) $qty : 0.00,
+            ':unit_of_measure'  => $unit !== '' && $unit !== null ? $unit : 'units',
+            ':reorder_level'    => $reorder !== '' && $reorder !== null ? (float) $reorder : 10.00,
+            ':unit_cost'        => $unitCost !== '' && $unitCost !== null ? (float) $unitCost : 0.00,
             ':storage_location' => $data['storage_location'] ?? null,
-            ':expiry_date'      => $data['expiry_date'] ?? null,
+            ':expiry_date'      => ($data['expiry_date'] ?? '') !== '' ? $data['expiry_date'] : null,
             ':supplier_name'    => $data['supplier_name'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
@@ -76,6 +110,10 @@ class InventoryModel
 
     public function update(int $id, array $data): bool
     {
+        $unit = $data['unit_of_measure'] ?? ($data['unit'] ?? 'units');
+        $reorder = $data['reorder_level'] ?? ($data['reorder_threshold'] ?? 10.00);
+        $unitCost = $data['unit_cost'] ?? 0.00;
+
         $stmt = $this->pdo->prepare(
             'UPDATE inventory_items
              SET name = :name, category = :category, sku = :sku, unit_of_measure = :unit_of_measure,
@@ -86,13 +124,13 @@ class InventoryModel
         return $stmt->execute([
             ':id'               => $id,
             ':name'             => $data['name'],
-            ':category'         => $data['category'] ?? 'other',
+            ':category'         => $this->normalizeCategory($data['category'] ?? 'other'),
             ':sku'              => $data['sku'] ?? null,
-            ':unit_of_measure'  => $data['unit_of_measure'] ?? 'units',
-            ':reorder_level'    => $data['reorder_level'] ?? 10.00,
-            ':unit_cost'        => $data['unit_cost'] ?? 0.00,
+            ':unit_of_measure'  => $unit !== '' && $unit !== null ? $unit : 'units',
+            ':reorder_level'    => $reorder !== '' && $reorder !== null ? (float) $reorder : 10.00,
+            ':unit_cost'        => $unitCost !== '' && $unitCost !== null ? (float) $unitCost : 0.00,
             ':storage_location' => $data['storage_location'] ?? null,
-            ':expiry_date'      => $data['expiry_date'] ?? null,
+            ':expiry_date'      => ($data['expiry_date'] ?? '') !== '' ? $data['expiry_date'] : null,
             ':supplier_name'    => $data['supplier_name'] ?? null,
         ]);
     }

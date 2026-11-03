@@ -32,7 +32,7 @@ function Storage() {
   const [warehouseForm, setWarehouseForm] = useState({
     farm_id: "",
     name: "",
-    storage_type: "Cold Storage",
+    storage_type: "cold_storage",
     capacity_kg: 50000,
     temperature_celsius: 4.0,
     humidity_percent: 85.0,
@@ -207,7 +207,7 @@ function Storage() {
     setDispatchForm({
       batch_id: batch.id,
       destination: "Central Market / Wholesale Customer",
-      quantity_kg: Number(batch.quantity_available_kg || batch.quantity_stored_kg || 100),
+      quantity_kg: Number(batch.quantity_remaining_kg ?? batch.quantity_available_kg ?? batch.quantity_stored_kg ?? 100),
       vehicle_number: "",
       driver_name: "",
       dispatch_date: new Date().toISOString().split("T")[0],
@@ -220,14 +220,14 @@ function Storage() {
 
   // Key metrics
   const totalStoredKg = batches.reduce(
-    (sum, b) => sum + Number(b.quantity_available_kg || b.quantity_stored_kg || 0),
+    (sum, b) => sum + Number(b.quantity_remaining_kg ?? b.quantity_available_kg ?? b.quantity_stored_kg ?? 0),
     0
   );
   const totalValuation = batches.reduce(
     (sum, b) =>
       sum +
-      Number(b.quantity_available_kg || b.quantity_stored_kg || 0) *
-        Number(b.unit_cost || 2.0),
+      Number(b.quantity_remaining_kg ?? b.quantity_available_kg ?? b.quantity_stored_kg ?? 0) *
+        Number(b.unit_cost_estimated ?? b.unit_cost ?? 2.0),
     0
   );
 
@@ -362,7 +362,7 @@ function Storage() {
                       {batches.map((b) => (
                         <tr key={b.id} style={{ borderBottom: "1px solid #EEE" }}>
                           <td style={{ padding: "12px 16px", fontWeight: 700, color: "#1E4632" }}>
-                            {b.batch_number || `BAT-${b.id}`}
+                            {b.batch_code || b.batch_number || `BAT-${b.id}`}
                           </td>
                           <td style={{ padding: "12px 16px", fontWeight: 600 }}>{b.crop_name || "Crop #" + b.crop_id}</td>
                           <td style={{ padding: "12px 16px" }}>{b.warehouse_name || "Warehouse #" + b.warehouse_id}</td>
@@ -370,9 +370,9 @@ function Storage() {
                             {Number(b.quantity_stored_kg).toLocaleString()} kg
                           </td>
                           <td style={{ padding: "12px 16px", fontWeight: 700, color: "#2E7D32" }}>
-                            {Number(b.quantity_available_kg || b.quantity_stored_kg).toLocaleString()} kg
+                            {Number(b.quantity_remaining_kg ?? b.quantity_available_kg ?? b.quantity_stored_kg).toLocaleString()} kg
                           </td>
-                          <td style={{ padding: "12px 16px" }}>{b.storage_date}</td>
+                          <td style={{ padding: "12px 16px" }}>{b.entry_date || b.storage_date}</td>
                           <td style={{ padding: "12px 16px" }}>
                             <span
                               style={{
@@ -380,11 +380,11 @@ function Storage() {
                                 borderRadius: "10px",
                                 fontSize: "12px",
                                 fontWeight: 600,
-                                backgroundColor: b.status === "in_storage" ? "#E8F5E9" : "#FFF8E1",
-                                color: b.status === "in_storage" ? "#2E7D32" : "#F57F17",
+                                backgroundColor: b.status === "stored" || b.status === "in_storage" ? "#E8F5E9" : "#FFF8E1",
+                                color: b.status === "stored" || b.status === "in_storage" ? "#2E7D32" : "#F57F17",
                               }}
                             >
-                              {b.status || "in_storage"}
+                              {b.status || "stored"}
                             </span>
                           </td>
                           <td style={{ padding: "12px 16px" }}>
@@ -456,21 +456,21 @@ function Storage() {
                           color: "#1E4632",
                         }}
                       >
-                        {wh.storage_type}
+                        {wh.type || wh.storage_type}
                       </span>
                     </div>
                     <div style={{ marginTop: "12px", fontSize: "13px", color: "#555", display: "flex", flexDirection: "column", gap: "6px" }}>
                       <div>
-                        <strong>Capacity:</strong> {Number(wh.capacity_kg).toLocaleString()} kg
+                        <strong>Capacity:</strong> {Number(wh.capacity_cubic_metres ?? wh.capacity_kg ?? 0).toLocaleString()} kg
                       </div>
                       <div>
-                        <strong>Target Temp:</strong> {wh.temperature_celsius ? `${wh.temperature_celsius}°C` : "Ambient"}
+                        <strong>Target Temp:</strong> {(wh.current_temperature_c ?? wh.temperature_celsius) ? `${wh.current_temperature_c ?? wh.temperature_celsius}°C` : "Ambient"}
                       </div>
                       <div>
-                        <strong>Humidity:</strong> {wh.humidity_percent ? `${wh.humidity_percent}%` : "Ambient"}
+                        <strong>Humidity:</strong> {(wh.current_humidity_pct ?? wh.humidity_percent) ? `${wh.current_humidity_pct ?? wh.humidity_percent}%` : "Ambient"}
                       </div>
                       <div>
-                        <strong>Location:</strong> {wh.location || "—"}
+                        <strong>Location:</strong> {wh.location_description || wh.location || "—"}
                       </div>
                     </div>
                   </div>
@@ -500,22 +500,25 @@ function Storage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {dispatches.map((d) => (
-                        <tr key={d.id} style={{ borderBottom: "1px solid #EEE" }}>
-                          <td style={{ padding: "12px 16px", fontWeight: 700 }}>
-                            DSP-{String(d.id).padStart(4, "0")}
-                          </td>
-                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{d.batch_number || "Batch #" + d.batch_id}</td>
-                          <td style={{ padding: "12px 16px" }}>{d.destination}</td>
-                          <td style={{ padding: "12px 16px", fontWeight: 700, color: "#1E4632" }}>
-                            {Number(d.quantity_kg).toLocaleString()} kg
-                          </td>
-                          <td style={{ padding: "12px 16px", fontSize: "13px", color: "#666" }}>
-                            {d.vehicle_number ? `${d.vehicle_number} (${d.driver_name || "Driver"})` : "—"}
-                          </td>
-                          <td style={{ padding: "12px 16px" }}>{d.dispatch_date || d.created_at?.split(" ")[0]}</td>
-                        </tr>
-                      ))}
+                      {dispatches.map((d) => {
+                        const vehicleNo = d.vehicle_registration || d.vehicle_number;
+                        return (
+                          <tr key={d.id} style={{ borderBottom: "1px solid #EEE" }}>
+                            <td style={{ padding: "12px 16px", fontWeight: 700 }}>
+                              DSP-{String(d.id).padStart(4, "0")}
+                            </td>
+                            <td style={{ padding: "12px 16px", fontWeight: 600 }}>{d.batch_code || d.batch_number || "Batch #" + d.batch_id}</td>
+                            <td style={{ padding: "12px 16px" }}>{d.destination}</td>
+                            <td style={{ padding: "12px 16px", fontWeight: 700, color: "#1E4632" }}>
+                              {Number(d.quantity_kg).toLocaleString()} kg
+                            </td>
+                            <td style={{ padding: "12px 16px", fontSize: "13px", color: "#666" }}>
+                              {vehicleNo ? `${vehicleNo} (${d.driver_name || "Driver"})` : "—"}
+                            </td>
+                            <td style={{ padding: "12px 16px" }}>{d.dispatch_date || d.created_at?.split(" ")[0]}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -547,11 +550,14 @@ function Storage() {
                 onChange={(e) => setWarehouseForm({ ...warehouseForm, storage_type: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
-                <option value="Cold Storage">Cold Storage</option>
-                <option value="Grain Silo">Grain Silo</option>
-                <option value="Dry Storage Shed">Dry Storage Shed</option>
-                <option value="Root Cellar">Root Cellar</option>
-                <option value="Packaging Hall">Packaging Hall</option>
+                <option value="cold_storage">Cold Storage</option>
+                <option value="silo">Grain Silo</option>
+                <option value="dry_shed">Dry Storage Shed</option>
+                <option value="grain_bin">Grain Bin</option>
+                <option value="greenhouse">Greenhouse</option>
+                <option value="packing_shed">Packaging Hall</option>
+                <option value="cellar">Root Cellar</option>
+                <option value="other">Other</option>
               </select>
             </div>
 
@@ -634,7 +640,7 @@ function Storage() {
                 <option value="">Select Warehouse</option>
                 {warehouses.map((wh) => (
                   <option key={wh.id} value={wh.id}>
-                    {wh.name} ({wh.storage_type})
+                    {wh.name} ({wh.type || wh.storage_type})
                   </option>
                 ))}
               </select>
@@ -726,7 +732,7 @@ function Storage() {
       <Modal isOpen={isSpoilageModalOpen} onClose={() => setIsSpoilageModalOpen(false)} title="Record Spoilage Write-Off">
         <form onSubmit={handleRecordSpoilage} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           <p style={{ margin: 0, fontSize: "13px", color: "#666" }}>
-            Deduct spoiled or deteriorated produce from batch: <strong>{selectedBatch?.batch_number}</strong>
+            Deduct spoiled or deteriorated produce from batch: <strong>{selectedBatch?.batch_code || selectedBatch?.batch_number}</strong>
           </p>
 
           <div>

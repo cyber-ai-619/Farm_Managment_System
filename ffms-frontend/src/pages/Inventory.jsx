@@ -24,7 +24,7 @@ function Inventory() {
   const [itemForm, setItemForm] = useState({
     farm_id: "",
     name: "",
-    category: "Fertilizer",
+    category: "fertilizers",
     quantity: 100,
     unit: "kg",
     reorder_threshold: 20,
@@ -184,7 +184,10 @@ function Inventory() {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "18px" }}>
           {items.map((item) => {
-            const isLow = Number(item.quantity || 0) <= Number(item.reorder_threshold || 10);
+            const qty = item.quantity_on_hand ?? item.quantity;
+            const unit = item.unit_of_measure ?? item.unit;
+            const reorder = item.reorder_level ?? item.reorder_threshold;
+            const isLow = Number(qty || 0) <= Number(reorder || 10);
             return (
               <div key={item.id} className="content-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div>
@@ -207,10 +210,10 @@ function Inventory() {
                     Category: <strong>{item.category || "General"}</strong>
                   </p>
                   <p style={{ margin: "4px 0 0", fontSize: "1.1rem", fontWeight: 700, color: "var(--color-forest)" }}>
-                    {item.quantity} {item.unit || "units"}
+                    {qty} {unit || "units"}
                   </p>
                   <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "var(--color-charcoal-60)" }}>
-                    Reorder Threshold: {item.reorder_threshold} {item.unit} | Unit Cost: ${item.unit_cost || "0.00"}
+                    Reorder Threshold: {reorder} {unit} | Unit Cost: ${item.unit_cost || "0.00"}
                   </p>
                 </div>
 
@@ -259,12 +262,16 @@ function Inventory() {
                 onChange={(e) => setItemForm({ ...itemForm, category: e.target.value })}
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
-                <option value="Fertilizer">Fertilizer</option>
-                <option value="Seed">Seed</option>
-                <option value="Pesticide">Pesticide</option>
-                <option value="Feed">Livestock Feed</option>
-                <option value="Equipment Part">Equipment Part</option>
-                <option value="Tool">Tool</option>
+                <option value="fertilizers">Fertilizers</option>
+                <option value="seeds">Seeds</option>
+                <option value="chemicals">Chemicals / Pesticides</option>
+                <option value="animal_feed">Animal Feed</option>
+                <option value="vet_medicine">Veterinary Medicine</option>
+                <option value="packaging">Packaging</option>
+                <option value="fuel">Fuel</option>
+                <option value="tools">Tools</option>
+                <option value="equipment_parts">Equipment Parts</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div className="form-field">

@@ -90,9 +90,9 @@ class ProcurementModel
                 ':supplier_id'            => $data['supplier_id'],
                 ':created_by'             => $userId,
                 ':po_number'              => $poNumber,
-                ':order_date'             => $data['order_date'] ?? date('Y-m-d'),
-                ':expected_delivery_date' => $data['expected_delivery_date'] ?? null,
-                ':status'                 => $data['status'] ?? 'draft',
+                ':order_date'             => !empty($data['order_date']) ? $data['order_date'] : date('Y-m-d'),
+                ':expected_delivery_date' => !empty($data['expected_delivery_date']) ? $data['expected_delivery_date'] : null,
+                ':status'                 => !empty($data['status']) ? $data['status'] : 'draft',
                 ':total_amount'           => $totalAmount,
                 ':notes'                  => $data['notes'] ?? null,
             ]);
@@ -106,12 +106,13 @@ class ProcurementModel
                 $qty = (float) ($item['quantity'] ?? 1);
                 $price = (float) ($item['unit_price'] ?? 0);
                 $lineTotal = (float) ($item['total_price'] ?? ($qty * $price));
+                $desc = trim((string) ($item['description'] ?? ($item['item_name'] ?? '')));
 
                 $itemStmt->execute([
                     ':po_id'       => $poId,
-                    ':description' => $item['description'],
+                    ':description' => $desc !== '' ? $desc : 'Procurement Item',
                     ':quantity'    => $qty,
-                    ':unit'        => $item['unit'] ?? 'units',
+                    ':unit'        => !empty($item['unit']) ? $item['unit'] : 'units',
                     ':unit_price'  => $price,
                     ':total_price' => $lineTotal,
                 ]);

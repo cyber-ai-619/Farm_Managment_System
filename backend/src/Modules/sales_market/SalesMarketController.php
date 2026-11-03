@@ -32,7 +32,7 @@ class SalesMarketController
     public function indexCustomers(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $customers = $this->salesModel->findCustomers($farmId);
         respond(['success' => true, 'count' => count($customers), 'data' => $customers]);
     }
@@ -56,7 +56,7 @@ class SalesMarketController
             respond(['success' => false, 'message' => 'Customer name is required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $id = $this->salesModel->createCustomer($farmId, $body);
         $this->audit->log('customer.created', (int) $user['sub'], 'customers', $id);
 
@@ -86,7 +86,7 @@ class SalesMarketController
     public function indexOrders(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $status = $_GET['status'] ?? null;
 
         $orders = $this->salesModel->findOrders($farmId, $status);
@@ -112,7 +112,7 @@ class SalesMarketController
             respond(['success' => false, 'message' => 'customer_id is required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $items  = $body['items'] ?? [];
 
         try {
@@ -151,7 +151,7 @@ class SalesMarketController
     public function indexInvoices(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $status = $_GET['status'] ?? null;
 
         $invoices = $this->salesModel->findInvoices($farmId, $status);
@@ -205,8 +205,12 @@ class SalesMarketController
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'accountant', 'agronomist']);
         $body = $this->jsonBody();
 
-        if (empty($body['commodity_name']) || empty($body['market_location']) || !isset($body['price_per_unit'])) {
-            respond(['success' => false, 'message' => 'commodity_name, market_location, and price_per_unit are required.'], 422);
+        $hasCommodity = !empty($body['commodity_name']) || !empty($body['crop_id']);
+        $hasLocation  = !empty($body['market_location']) || !empty($body['market_name']);
+        $hasPrice     = (isset($body['price_per_unit']) && $body['price_per_unit'] !== '') || (isset($body['price']) && $body['price'] !== '');
+
+        if (!$hasCommodity || !$hasLocation || !$hasPrice) {
+            respond(['success' => false, 'message' => 'commodity_name (or crop_id), market_location (or market_name), and price_per_unit (or price) are required.'], 422);
         }
 
         $id = $this->marketModel->createPrice($body);

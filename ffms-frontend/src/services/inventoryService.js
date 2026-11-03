@@ -11,8 +11,9 @@ import api from "./api";
  *   POST     /api/inventory/{id}/stock-out
  */
 export const inventoryService = {
-  async getItems() {
-    const res = await api.get("/api/inventory");
+  async getItems(farmId) {
+    const query = farmId ? `?farm_id=${farmId}` : "";
+    const res = await api.get(`/api/inventory${query}`);
     return res.data || [];
   },
 
@@ -31,8 +32,9 @@ export const inventoryService = {
     return res.data;
   },
 
-  async getLowStock() {
-    const res = await api.get("/api/inventory/low-stock");
+  async getLowStock(farmId) {
+    const query = farmId ? `?farm_id=${farmId}` : "";
+    const res = await api.get(`/api/inventory/low-stock${query}`);
     return res.data || [];
   },
 

@@ -21,3 +21,6 @@ database/*.sqlite
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Scratch and local test scripts
+scratch/

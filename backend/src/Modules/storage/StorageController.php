@@ -29,7 +29,7 @@ class StorageController
     public function indexWarehouses(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $warehouses = $this->storageModel->findWarehouses($farmId);
         respond(['success' => true, 'count' => count($warehouses), 'data' => $warehouses]);
     }
@@ -53,7 +53,7 @@ class StorageController
             respond(['success' => false, 'message' => 'Warehouse name is required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $id = $this->storageModel->createWarehouse($farmId, $body);
         $this->audit->log('warehouse.created', (int) $user['sub'], 'warehouses', $id);
 
@@ -83,7 +83,7 @@ class StorageController
     public function indexBatches(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $whId   = isset($_GET['warehouse_id']) ? (int) $_GET['warehouse_id'] : null;
         $status = $_GET['status'] ?? null;
 
@@ -106,6 +106,8 @@ class StorageController
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
         $body = $this->jsonBody();
 
+        $body['batch_code'] = $body['batch_code'] ?? ($body['batch_number'] ?? '');
+
         if (empty($body['warehouse_id']) || empty($body['crop_id']) || !isset($body['quantity_stored_kg'])) {
             respond(['success' => false, 'message' => 'warehouse_id, crop_id, and quantity_stored_kg are required.'], 422);
         }
@@ -123,7 +125,7 @@ class StorageController
     public function valuation(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $valuation = $this->storageModel->getInventoryValuation($farmId);
         respond(['success' => true, 'data' => $valuation]);
     }
@@ -162,7 +164,7 @@ class StorageController
     public function indexDispatches(): void
     {
         requireAuth();
-        $farmId  = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId  = resolveFarmId($_GET['farm_id'] ?? null);
         $batchId = isset($_GET['batch_id']) ? (int) $_GET['batch_id'] : null;
 
         $dispatches = $this->storageModel->findDispatches($farmId, $batchId);

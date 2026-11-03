@@ -28,7 +28,7 @@ function Harvest() {
     quantity_kg: 500,
     expected_yield_kg: 550,
     loss_kg: 10,
-    quality_grade: "Grade A",
+    quality_grade: "A",
     storage_location: "Barn A - Cold Storage",
     notes: "",
   });
@@ -303,20 +303,20 @@ function Harvest() {
                           fontSize: "12px",
                           fontWeight: 600,
                           backgroundColor:
-                            item.quality_grade === "Premium" || item.quality_grade === "Grade A"
+                            item.quality_grade === "A" || item.quality_grade === "Premium" || item.quality_grade === "Grade A"
                               ? "#E8F5E9"
-                              : item.quality_grade === "Grade B"
+                              : item.quality_grade === "B" || item.quality_grade === "Grade B"
                               ? "#FFF8E1"
                               : "#FFEBEE",
                           color:
-                            item.quality_grade === "Premium" || item.quality_grade === "Grade A"
+                            item.quality_grade === "A" || item.quality_grade === "Premium" || item.quality_grade === "Grade A"
                               ? "#2E7D32"
-                              : item.quality_grade === "Grade B"
+                              : item.quality_grade === "B" || item.quality_grade === "Grade B"
                               ? "#F57F17"
                               : "#C62828",
                         }}
                       >
-                        {item.quality_grade || "Standard"}
+                        {item.quality_grade || "A"}
                       </span>
                     </td>
                     <td style={{ padding: "12px 16px" }}>{item.storage_location || "—"}</td>
@@ -348,7 +348,7 @@ function Harvest() {
                 <option value="">Select Field</option>
                 {fields.map((f) => (
                   <option key={f.id} value={f.id}>
-                    {f.name} ({f.size_hectares || f.area_sqm || "0"} ha)
+                    {f.name} ({f.area_ha || f.size_hectares || f.area_sqm || "0"} ha)
                   </option>
                 ))}
               </select>
@@ -367,7 +367,7 @@ function Harvest() {
                 <option value="">Select Crop</option>
                 {crops.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.type || "Crop"})
+                    {c.name} ({c.category || c.type || "Crop"})
                   </option>
                 ))}
               </select>
@@ -397,11 +397,10 @@ function Harvest() {
                 onChange={(e) => setFormData({ ...formData, quality_grade: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
-                <option value="Premium">Premium</option>
-                <option value="Grade A">Grade A</option>
-                <option value="Grade B">Grade B</option>
-                <option value="Grade C">Grade C</option>
-                <option value="Feed Grade">Feed Grade</option>
+                <option value="A">Grade A (Premium)</option>
+                <option value="B">Grade B (Standard)</option>
+                <option value="C">Grade C (Processing)</option>
+                <option value="rejected">Rejected / Feed Grade</option>
               </select>
             </div>
           </div>

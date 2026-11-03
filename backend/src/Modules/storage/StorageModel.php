@@ -21,16 +21,41 @@ class StorageModel
     // Warehouses
     // -------------------------------------------------------------
 
+    private function normalizeWarehouseType(?string $raw): string
+    {
+        $rawType = strtolower(trim((string) ($raw ?? 'dry_shed')));
+        $typeMap = [
+            'cold storage'     => 'cold_storage',
+            'grain silo'       => 'silo',
+            'dry storage shed' => 'dry_shed',
+            'root cellar'      => 'cellar',
+            'packaging hall'   => 'packing_shed',
+        ];
+        $type = $typeMap[$rawType] ?? str_replace(' ', '_', $rawType);
+        $valid = ['silo', 'cold_storage', 'dry_shed', 'grain_bin', 'greenhouse', 'packing_shed', 'cellar', 'other'];
+        return in_array($type, $valid, true) ? $type : 'dry_shed';
+    }
+
     public function findWarehouses(int $farmId): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM warehouses WHERE farm_id = :farm_id ORDER BY name ASC');
+        $stmt = $this->pdo->prepare(
+            'SELECT *, type AS storage_type, capacity_cubic_metres AS capacity_kg,
+                    current_temperature_c AS temperature_celsius, current_humidity_pct AS humidity_percent,
+                    location_description AS location
+             FROM warehouses WHERE farm_id = :farm_id ORDER BY name ASC'
+        );
         $stmt->execute([':farm_id' => $farmId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findWarehouseById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM warehouses WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare(
+            'SELECT *, type AS storage_type, capacity_cubic_metres AS capacity_kg,
+                    current_temperature_c AS temperature_celsius, current_humidity_pct AS humidity_percent,
+                    location_description AS location
+             FROM warehouses WHERE id = :id LIMIT 1'
+        );
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -38,6 +63,12 @@ class StorageModel
 
     public function createWarehouse(int $farmId, array $data): int
     {
+        $type = $this->normalizeWarehouseType($data['type'] ?? ($data['storage_type'] ?? 'dry_shed'));
+        $cap  = $data['capacity_cubic_metres'] ?? ($data['capacity_kg'] ?? null);
+        $temp = $data['current_temperature_c'] ?? ($data['temperature_celsius'] ?? null);
+        $hum  = $data['current_humidity_pct'] ?? ($data['humidity_percent'] ?? null);
+        $loc  = $data['location_description'] ?? ($data['location'] ?? null);
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO warehouses (farm_id, name, type, capacity_cubic_metres, current_temperature_c, current_humidity_pct, location_description, is_active)
              VALUES (:farm_id, :name, :type, :capacity_cubic_metres, :current_temperature_c, :current_humidity_pct, :location_description, :is_active)'
@@ -45,11 +76,11 @@ class StorageModel
         $stmt->execute([
             ':farm_id'               => $farmId,
             ':name'                  => $data['name'],
-            ':type'                  => $data['type'] ?? 'dry_shed',
-            ':capacity_cubic_metres' => $data['capacity_cubic_metres'] ?? null,
-            ':current_temperature_c' => $data['current_temperature_c'] ?? null,
-            ':current_humidity_pct'  => $data['current_humidity_pct'] ?? null,
-            ':location_description'  => $data['location_description'] ?? null,
+            ':type'                  => $type,
+            ':capacity_cubic_metres' => ($cap !== '' && $cap !== null) ? (float) $cap : null,
+            ':current_temperature_c' => ($temp !== '' && $temp !== null) ? (float) $temp : null,
+            ':current_humidity_pct'  => ($hum !== '' && $hum !== null) ? (float) $hum : null,
+            ':location_description'  => $loc,
             ':is_active'             => isset($data['is_active']) ? (int) $data['is_active'] : 1,
         ]);
         return (int) $this->pdo->lastInsertId();
@@ -57,14 +88,36 @@ class StorageModel
 
     public function updateWarehouse(int $id, array $data): bool
     {
+        if (array_key_exists('storage_type', $data) && !array_key_exists('type', $data)) {
+            $data['type'] = $data['storage_type'];
+        }
+        if (array_key_exists('capacity_kg', $data) && !array_key_exists('capacity_cubic_metres', $data)) {
+            $data['capacity_cubic_metres'] = $data['capacity_kg'];
+        }
+        if (array_key_exists('temperature_celsius', $data) && !array_key_exists('current_temperature_c', $data)) {
+            $data['current_temperature_c'] = $data['temperature_celsius'];
+        }
+        if (array_key_exists('humidity_percent', $data) && !array_key_exists('current_humidity_pct', $data)) {
+            $data['current_humidity_pct'] = $data['humidity_percent'];
+        }
+        if (array_key_exists('location', $data) && !array_key_exists('location_description', $data)) {
+            $data['location_description'] = $data['location'];
+        }
+
         $allowed = ['name', 'type', 'capacity_cubic_metres', 'current_temperature_c', 'current_humidity_pct', 'location_description', 'is_active'];
         $fields  = [];
         $params  = [':id' => $id];
 
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
+                $val = $data[$field];
+                if ($field === 'type') {
+                    $val = $this->normalizeWarehouseType((string) $val);
+                } elseif (in_array($field, ['capacity_cubic_metres', 'current_temperature_c', 'current_humidity_pct'], true)) {
+                    $val = ($val !== '' && $val !== null) ? (float) $val : null;
+                }
                 $fields[] = "{$field} = :{$field}";
-                $params[":{$field}"] = $data[$field];
+                $params[":{$field}"] = $val;
             }
         }
 
@@ -83,7 +136,11 @@ class StorageModel
 
     public function findBatches(int $farmId, ?int $warehouseId = null, ?string $status = null): array
     {
-        $sql = 'SELECT sb.*, w.name AS warehouse_name, c.name AS crop_name, hr.harvest_date
+        $sql = 'SELECT sb.*, w.name AS warehouse_name, c.name AS crop_name, hr.harvest_date,
+                       sb.batch_code AS batch_number,
+                       sb.quantity_remaining_kg AS quantity_available_kg,
+                       sb.unit_cost_estimated AS unit_cost,
+                       sb.entry_date AS storage_date
                 FROM storage_batches sb
                 JOIN warehouses w ON w.id = sb.warehouse_id
                 JOIN crops c ON c.id = sb.crop_id
@@ -109,7 +166,11 @@ class StorageModel
     public function findBatchById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT sb.*, w.name AS warehouse_name, c.name AS crop_name, hr.harvest_date
+            'SELECT sb.*, w.name AS warehouse_name, c.name AS crop_name, hr.harvest_date,
+                    sb.batch_code AS batch_number,
+                    sb.quantity_remaining_kg AS quantity_available_kg,
+                    sb.unit_cost_estimated AS unit_cost,
+                    sb.entry_date AS storage_date
              FROM storage_batches sb
              JOIN warehouses w ON w.id = sb.warehouse_id
              JOIN crops c ON c.id = sb.crop_id
@@ -129,28 +190,51 @@ class StorageModel
 
     public function createBatch(array $data): int
     {
-        $batchCode = $data['batch_code'] ?? ('BAT-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3))));
+        $rawBatchCode = trim((string) ($data['batch_code'] ?? ($data['batch_number'] ?? '')));
+        $batchCode = $rawBatchCode !== '' ? $rawBatchCode : ('BATCH-' . strtoupper(uniqid()));
         $qty = (float) ($data['quantity_stored_kg'] ?? 0);
-        $remaining = isset($data['quantity_remaining_kg']) ? (float) $data['quantity_remaining_kg'] : $qty;
+        $remaining = isset($data['quantity_remaining_kg']) && $data['quantity_remaining_kg'] !== ''
+            ? (float) $data['quantity_remaining_kg']
+            : $qty;
+
+        $unitCost = ($data['unit_cost_estimated'] ?? ($data['unit_cost'] ?? '')) !== ''
+            ? (float) ($data['unit_cost_estimated'] ?? $data['unit_cost'])
+            : 0.00;
+        $entryDate = !empty($data['entry_date'])
+            ? $data['entry_date']
+            : (!empty($data['storage_date']) ? $data['storage_date'] : date('Y-m-d'));
+
+        $harvestId = !empty($data['harvest_id']) ? (int) $data['harvest_id'] : null;
+        $expiryDate = !empty($data['expiry_date']) ? $data['expiry_date'] : null;
+
+        $qualityGrade = $data['quality_grade'] ?? 'A';
+        if (!in_array($qualityGrade, ['A', 'B', 'C', 'rejected'], true)) {
+            $qualityGrade = 'A';
+        }
+
+        $status = $data['status'] ?? 'stored';
+        if (!in_array($status, ['stored', 'partially_dispatched', 'dispatched', 'spoiled'], true)) {
+            $status = 'stored';
+        }
 
         $stmt = $this->pdo->prepare(
             'INSERT INTO storage_batches (warehouse_id, harvest_id, crop_id, batch_code, quantity_stored_kg, quantity_remaining_kg, unit_cost_estimated, quality_grade, entry_date, expiry_date, status, spoilage_kg, notes)
              VALUES (:warehouse_id, :harvest_id, :crop_id, :batch_code, :quantity_stored_kg, :quantity_remaining_kg, :unit_cost_estimated, :quality_grade, :entry_date, :expiry_date, :status, :spoilage_kg, :notes)'
         );
         $stmt->execute([
-            ':warehouse_id'           => $data['warehouse_id'],
-            ':harvest_id'              => $data['harvest_id'] ?? null,
-            ':crop_id'                 => $data['crop_id'],
-            ':batch_code'              => $batchCode,
-            ':quantity_stored_kg'      => $qty,
-            ':quantity_remaining_kg'   => $remaining,
-            ':unit_cost_estimated'     => $data['unit_cost_estimated'] ?? 0.00,
-            ':quality_grade'           => $data['quality_grade'] ?? 'A',
-            ':entry_date'              => $data['entry_date'] ?? date('Y-m-d'),
-            ':expiry_date'             => $data['expiry_date'] ?? null,
-            ':status'                  => $data['status'] ?? 'stored',
-            ':spoilage_kg'             => $data['spoilage_kg'] ?? 0.00,
-            ':notes'                   => $data['notes'] ?? null,
+            ':warehouse_id'          => $data['warehouse_id'],
+            ':harvest_id'            => $harvestId,
+            ':crop_id'               => $data['crop_id'],
+            ':batch_code'            => $batchCode,
+            ':quantity_stored_kg'    => $qty,
+            ':quantity_remaining_kg' => $remaining,
+            ':unit_cost_estimated'   => $unitCost,
+            ':quality_grade'         => $qualityGrade,
+            ':entry_date'            => $entryDate,
+            ':expiry_date'           => $expiryDate,
+            ':status'                => $status,
+            ':spoilage_kg'           => ($data['spoilage_kg'] ?? '') !== '' ? (float) $data['spoilage_kg'] : 0.00,
+            ':notes'                 => $data['notes'] ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -225,7 +309,9 @@ class StorageModel
 
     public function findDispatches(int $farmId, ?int $batchId = null): array
     {
-        $sql = 'SELECT dr.*, sb.batch_code, c.name AS crop_name, u.name AS dispatched_by_name, so.order_number
+        $sql = 'SELECT dr.*, sb.batch_code, sb.batch_code AS batch_number, c.name AS crop_name,
+                       u.name AS dispatched_by_name, so.order_number,
+                       dr.vehicle_registration AS vehicle_number
                 FROM dispatch_records dr
                 JOIN storage_batches sb ON sb.id = dr.batch_id
                 JOIN warehouses w ON w.id = sb.warehouse_id
@@ -249,7 +335,7 @@ class StorageModel
     public function findDispatchesByBatch(int $batchId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT dr.*, u.name AS dispatched_by_name, so.order_number
+            'SELECT dr.*, u.name AS dispatched_by_name, so.order_number, dr.vehicle_registration AS vehicle_number
              FROM dispatch_records dr
              JOIN users u ON u.id = dr.dispatched_by
              LEFT JOIN sales_orders so ON so.id = dr.order_id
@@ -258,6 +344,11 @@ class StorageModel
         );
         $stmt->execute([':batch_id' => $batchId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function recordDispatch(int $userId, array $data): int
+    {
+        return $this->createDispatch($userId, $data);
     }
 
     public function createDispatch(int $userId, array $data): int
@@ -276,6 +367,10 @@ class StorageModel
                 throw new InvalidArgumentException("Insufficient batch quantity. Remaining: {$currentRem} kg.");
             }
 
+            $vehicleReg = $data['vehicle_registration'] ?? ($data['vehicle_number'] ?? null);
+            $orderId    = !empty($data['order_id']) ? (int) $data['order_id'] : null;
+            $dispatchDate = !empty($data['dispatch_date']) ? $data['dispatch_date'] : date('Y-m-d');
+
             // Insert dispatch record
             $dStmt = $this->pdo->prepare(
                 'INSERT INTO dispatch_records (batch_id, order_id, dispatched_by, quantity_kg, destination, vehicle_registration, driver_name, dispatch_date, notes)
@@ -283,13 +378,13 @@ class StorageModel
             );
             $dStmt->execute([
                 ':batch_id'             => $batchId,
-                ':order_id'             => $data['order_id'] ?? null,
+                ':order_id'             => $orderId,
                 ':dispatched_by'        => $userId,
                 ':quantity_kg'          => $qty,
                 ':destination'          => $data['destination'],
-                ':vehicle_registration' => $data['vehicle_registration'] ?? null,
+                ':vehicle_registration' => $vehicleReg,
                 ':driver_name'          => $data['driver_name'] ?? null,
-                ':dispatch_date'        => $data['dispatch_date'] ?? date('Y-m-d'),
+                ':dispatch_date'        => $dispatchDate,
                 ':notes'                => $data['notes'] ?? null,
             ]);
             $dispatchId = (int) $this->pdo->lastInsertId();

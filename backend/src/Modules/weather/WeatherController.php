@@ -76,7 +76,7 @@ class WeatherController
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'worker']);
         $body = $this->jsonBody();
 
-        if (!isset($body['temperature_c'])) {
+        if (!isset($body['temperature_c']) || $body['temperature_c'] === '') {
             respond(['success' => false, 'message' => 'temperature_c is required.'], 422);
         }
 

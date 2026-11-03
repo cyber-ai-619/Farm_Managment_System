@@ -21,10 +21,39 @@ class SalesModel
     // Customers
     // -------------------------------------------------------------
 
+    private function normalizeCustomerType(string $raw): string
+    {
+        $map = [
+            'wholesale'       => 'wholesaler',
+            'wholesaler'      => 'wholesaler',
+            'retail'          => 'retailer',
+            'retailer'        => 'retailer',
+            'supermarket'     => 'supermarket',
+            'food processor'  => 'processor',
+            'processor'       => 'processor',
+            'direct_consumer' => 'direct_consumer',
+            'export'          => 'export',
+        ];
+        $key = strtolower(trim($raw));
+        return $map[$key] ?? 'other';
+    }
+
+    private function normalizeOrderStatus(string $raw): string
+    {
+        $key = strtolower(trim($raw));
+        if ($key === 'pending') {
+            $key = 'draft';
+        } elseif ($key === 'completed') {
+            $key = 'delivered';
+        }
+        $valid = ['draft', 'confirmed', 'processing', 'dispatched', 'delivered', 'cancelled'];
+        return in_array($key, $valid, true) ? $key : 'draft';
+    }
+
     public function findCustomers(int $farmId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT * FROM customers WHERE farm_id = :farm_id ORDER BY name ASC'
+            'SELECT *, type AS customer_type FROM customers WHERE farm_id = :farm_id ORDER BY name ASC'
         );
         $stmt->execute([':farm_id' => $farmId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -32,7 +61,7 @@ class SalesModel
 
     public function findCustomerById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM customers WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT *, type AS customer_type FROM customers WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -40,6 +69,9 @@ class SalesModel
 
     public function createCustomer(int $farmId, array $data): int
     {
+        $type = $this->normalizeCustomerType((string) ($data['type'] ?? ($data['customer_type'] ?? 'wholesaler')));
+        $creditLimit = ($data['credit_limit'] ?? '') !== '' ? (float) $data['credit_limit'] : 0.00;
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO customers (farm_id, name, type, contact_person, phone, email, address, tax_number, credit_limit, is_active, notes)
              VALUES (:farm_id, :name, :type, :contact_person, :phone, :email, :address, :tax_number, :credit_limit, :is_active, :notes)'
@@ -47,21 +79,31 @@ class SalesModel
         $stmt->execute([
             ':farm_id'        => $farmId,
             ':name'           => $data['name'],
-            ':type'           => $data['type'] ?? 'wholesaler',
-            ':contact_person' => $data['contact_person'] ?? null,
-            ':phone'          => $data['phone'] ?? null,
-            ':email'          => $data['email'] ?? null,
-            ':address'        => $data['address'] ?? null,
-            ':tax_number'     => $data['tax_number'] ?? null,
-            ':credit_limit'   => $data['credit_limit'] ?? 0.00,
+            ':type'           => $type,
+            ':contact_person' => !empty($data['contact_person']) ? $data['contact_person'] : null,
+            ':phone'          => !empty($data['phone']) ? $data['phone'] : null,
+            ':email'          => !empty($data['email']) ? $data['email'] : null,
+            ':address'        => !empty($data['address']) ? $data['address'] : null,
+            ':tax_number'     => !empty($data['tax_number']) ? $data['tax_number'] : null,
+            ':credit_limit'   => $creditLimit,
             ':is_active'      => isset($data['is_active']) ? (int) $data['is_active'] : 1,
-            ':notes'          => $data['notes'] ?? null,
+            ':notes'          => !empty($data['notes']) ? $data['notes'] : null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
 
     public function updateCustomer(int $id, array $data): bool
     {
+        if (!isset($data['type']) && isset($data['customer_type'])) {
+            $data['type'] = $data['customer_type'];
+        }
+        if (isset($data['type'])) {
+            $data['type'] = $this->normalizeCustomerType((string) $data['type']);
+        }
+        if (array_key_exists('credit_limit', $data)) {
+            $data['credit_limit'] = ($data['credit_limit'] !== '' && $data['credit_limit'] !== null) ? (float) $data['credit_limit'] : 0.00;
+        }
+
         $allowed = ['name', 'type', 'contact_person', 'phone', 'email', 'address', 'tax_number', 'credit_limit', 'is_active', 'notes'];
         $fields  = [];
         $params  = [':id' => $id];
@@ -138,7 +180,10 @@ class SalesModel
     {
         $this->pdo->beginTransaction();
         try {
-            $orderNumber = $data['order_number'] ?? ('ORD-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3))));
+            $orderNumber = !empty($data['order_number']) ? $data['order_number'] : ('ORD-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3))));
+            $orderDate = !empty($data['order_date']) ? $data['order_date'] : date('Y-m-d');
+            $deliveryDate = !empty($data['delivery_date']) ? $data['delivery_date'] : null;
+            $status = $this->normalizeOrderStatus((string) ($data['status'] ?? 'draft'));
             $totalAmount = 0.00;
 
             // Calculate total from items
@@ -147,8 +192,8 @@ class SalesModel
                 $unitPrice = (float) ($item['unit_price'] ?? 0);
                 $totalAmount += ($qty * $unitPrice);
             }
-            if (isset($data['total_amount']) && (float)$data['total_amount'] > 0) {
-                $totalAmount = (float)$data['total_amount'];
+            if (isset($data['total_amount']) && (float) $data['total_amount'] > 0) {
+                $totalAmount = (float) $data['total_amount'];
             }
 
             $stmt = $this->pdo->prepare(
@@ -157,14 +202,14 @@ class SalesModel
             );
             $stmt->execute([
                 ':farm_id'       => $farmId,
-                ':customer_id'   => $data['customer_id'],
+                ':customer_id'   => (int) $data['customer_id'],
                 ':created_by'    => $userId,
                 ':order_number'  => $orderNumber,
-                ':order_date'    => $data['order_date'] ?? date('Y-m-d'),
-                ':delivery_date' => $data['delivery_date'] ?? null,
-                ':status'        => $data['status'] ?? 'draft',
+                ':order_date'    => $orderDate,
+                ':delivery_date' => $deliveryDate,
+                ':status'        => $status,
                 ':total_amount'  => $totalAmount,
-                ':notes'         => $data['notes'] ?? null,
+                ':notes'         => !empty($data['notes']) ? $data['notes'] : null,
             ]);
             $orderId = (int) $this->pdo->lastInsertId();
 
@@ -173,18 +218,32 @@ class SalesModel
                 'INSERT INTO order_items (order_id, item_type, item_id, item_name, quantity, unit, unit_price, total_price)
                  VALUES (:order_id, :item_type, :item_id, :item_name, :quantity, :unit, :unit_price, :total_price)'
             );
+            $cropLookupStmt = $this->pdo->prepare('SELECT name FROM crops WHERE id = :id LIMIT 1');
+
             foreach ($items as $item) {
                 $qty = (float) ($item['quantity'] ?? 1);
                 $price = (float) ($item['unit_price'] ?? 0);
                 $lineTotal = (float) ($item['total_price'] ?? ($qty * $price));
+                $itemId = !empty($item['item_id']) ? (int) $item['item_id'] : (!empty($item['crop_id']) ? (int) $item['crop_id'] : null);
+                $itemName = trim((string) ($item['item_name'] ?? ''));
+
+                if ($itemName === '') {
+                    if ($itemId !== null) {
+                        $cropLookupStmt->execute([':id' => $itemId]);
+                        $foundName = $cropLookupStmt->fetchColumn();
+                        $itemName = $foundName ? (string) $foundName : "Crop #{$itemId}";
+                    } else {
+                        $itemName = 'Farm Produce';
+                    }
+                }
 
                 $itemStmt->execute([
                     ':order_id'    => $orderId,
-                    ':item_type'   => $item['item_type'] ?? 'crop',
-                    ':item_id'     => $item['item_id'] ?? null,
-                    ':item_name'   => $item['item_name'],
+                    ':item_type'   => !empty($item['item_type']) ? $item['item_type'] : 'crop',
+                    ':item_id'     => $itemId,
+                    ':item_name'   => $itemName,
                     ':quantity'    => $qty,
-                    ':unit'        => $item['unit'] ?? 'kg',
+                    ':unit'        => !empty($item['unit']) ? $item['unit'] : 'kg',
                     ':unit_price'  => $price,
                     ':total_price' => $lineTotal,
                 ]);
@@ -198,10 +257,10 @@ class SalesModel
             );
             $invStmt->execute([
                 ':order_id'       => $orderId,
-                ':customer_id'    => $data['customer_id'],
+                ':customer_id'    => (int) $data['customer_id'],
                 ':invoice_number' => $invNumber,
-                ':issue_date'     => $data['order_date'] ?? date('Y-m-d'),
-                ':due_date'       => $data['due_date'] ?? date('Y-m-d', strtotime('+30 days')),
+                ':issue_date'     => $orderDate,
+                ':due_date'       => !empty($data['due_date']) ? $data['due_date'] : date('Y-m-d', strtotime('+30 days')),
                 ':subtotal'       => $totalAmount,
                 ':tax_amount'     => 0.00,
                 ':total_amount'   => $totalAmount,
@@ -220,8 +279,9 @@ class SalesModel
 
     public function updateOrderStatus(int $orderId, string $status): bool
     {
+        $cleanStatus = $this->normalizeOrderStatus($status);
         $stmt = $this->pdo->prepare('UPDATE sales_orders SET status = :status WHERE id = :id');
-        return $stmt->execute([':status' => $status, ':id' => $orderId]);
+        return $stmt->execute([':status' => $cleanStatus, ':id' => $orderId]);
     }
 
     // -------------------------------------------------------------
@@ -230,19 +290,19 @@ class SalesModel
 
     public function findInvoices(int $farmId, ?string $status = null): array
     {
-        $sql = 'SELECT inv.*, c.name AS customer_name, so.order_number
-                FROM invoices inv
-                JOIN customers c ON c.id = inv.customer_id
-                JOIN sales_orders so ON so.id = inv.order_id
+        $sql = 'SELECT i.*, so.order_number, c.name AS customer_name, i.order_id AS sales_order_id, i.amount_paid AS paid_amount, i.status AS payment_status
+                FROM invoices i
+                JOIN customers c ON c.id = i.customer_id
+                JOIN sales_orders so ON so.id = i.order_id
                 WHERE c.farm_id = :farm_id';
         $params = [':farm_id' => $farmId];
 
         if ($status !== null) {
-            $sql .= ' AND inv.status = :status';
+            $sql .= ' AND i.status = :status';
             $params[':status'] = $status;
         }
 
-        $sql .= ' ORDER BY inv.issue_date DESC';
+        $sql .= ' ORDER BY i.issue_date DESC';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -251,7 +311,8 @@ class SalesModel
     public function findInvoiceById(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT inv.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone, so.order_number
+            'SELECT inv.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone, so.order_number,
+                    inv.order_id AS sales_order_id, inv.amount_paid AS paid_amount, inv.status AS payment_status
              FROM invoices inv
              JOIN customers c ON c.id = inv.customer_id
              JOIN sales_orders so ON so.id = inv.order_id
@@ -269,7 +330,7 @@ class SalesModel
 
     public function findInvoiceByOrderId(int $orderId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM invoices WHERE order_id = :order_id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT *, order_id AS sales_order_id, amount_paid AS paid_amount, status AS payment_status FROM invoices WHERE order_id = :order_id LIMIT 1');
         $stmt->execute([':order_id' => $orderId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -302,6 +363,11 @@ class SalesModel
                 throw new InvalidArgumentException('Payment amount must be greater than zero.');
             }
 
+            $rawMethod = strtolower(str_replace(' ', '_', trim((string) ($data['payment_method'] ?? 'bank_transfer'))));
+            $validMethods = ['bank_transfer', 'cash', 'mobile_money', 'cheque', 'credit_card'];
+            $paymentMethod = in_array($rawMethod, $validMethods, true) ? $rawMethod : 'bank_transfer';
+            $paymentDate = !empty($data['payment_date']) ? $data['payment_date'] : date('Y-m-d');
+
             $stmt = $this->pdo->prepare(
                 'INSERT INTO payments (invoice_id, customer_id, recorded_by, amount, payment_method, payment_date, reference_number, notes)
                  VALUES (:invoice_id, :customer_id, :recorded_by, :amount, :payment_method, :payment_date, :reference_number, :notes)'
@@ -311,16 +377,16 @@ class SalesModel
                 ':customer_id'      => $invoice['customer_id'],
                 ':recorded_by'      => $userId,
                 ':amount'           => $amount,
-                ':payment_method'   => $data['payment_method'] ?? 'bank_transfer',
-                ':payment_date'     => $data['payment_date'] ?? date('Y-m-d'),
-                ':reference_number' => $data['reference_number'] ?? null,
-                ':notes'            => $data['notes'] ?? null,
+                ':payment_method'   => $paymentMethod,
+                ':payment_date'     => $paymentDate,
+                ':reference_number' => !empty($data['reference_number']) ? $data['reference_number'] : null,
+                ':notes'            => !empty($data['notes']) ? $data['notes'] : null,
             ]);
             $paymentId = (int) $this->pdo->lastInsertId();
 
             // Update invoice amount_paid & status
-            $newPaid = (float)$invoice['amount_paid'] + $amount;
-            $newStatus = ($newPaid >= (float)$invoice['total_amount']) ? 'paid' : 'partially_paid';
+            $newPaid = (float) $invoice['amount_paid'] + $amount;
+            $newStatus = ($newPaid >= (float) $invoice['total_amount']) ? 'paid' : 'partially_paid';
 
             $upStmt = $this->pdo->prepare(
                 'UPDATE invoices SET amount_paid = :paid, status = :status WHERE id = :id'

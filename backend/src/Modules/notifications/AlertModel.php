@@ -18,7 +18,7 @@ class AlertModel
 
     public function findActiveAlerts(int $farmId, ?int $userId = null): array
     {
-        $sql = 'SELECT * FROM alerts 
+        $sql = 'SELECT *, alert_type AS category FROM alerts 
                 WHERE farm_id = :farm_id 
                   AND is_dismissed = 0';
         $params = [':farm_id' => $farmId];
@@ -34,10 +34,15 @@ class AlertModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getActiveAlerts(int $farmId, ?int $userId = null): array
+    {
+        return $this->findActiveAlerts($farmId, $userId);
+    }
+
     public function findAlertHistory(int $farmId, int $limit = 50): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT * FROM alerts 
+            'SELECT *, alert_type AS category FROM alerts 
              WHERE farm_id = :farm_id 
              ORDER BY created_at DESC 
              LIMIT :limit'
@@ -48,9 +53,14 @@ class AlertModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getAlertHistory(int $farmId, int $limit = 50): array
+    {
+        return $this->findAlertHistory($farmId, $limit);
+    }
+
     public function findById(int $id): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM alerts WHERE id = :id LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT *, alert_type AS category FROM alerts WHERE id = :id LIMIT 1');
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -76,17 +86,41 @@ class AlertModel
 
     public function createAlert(int $farmId, ?int $userId, array $data): int
     {
+        $rawType = strtolower(trim((string) ($data['alert_type'] ?? ($data['category'] ?? 'general'))));
+        $typeMap = [
+            'weather'      => 'weather_risk',
+            'inventory'    => 'inventory_low',
+            'equipment'    => 'maintenance_due',
+            'pest_disease' => 'pest_outbreak',
+            'livestock'    => 'vaccination_due',
+            'irrigation'   => 'general',
+        ];
+        $alertType = $typeMap[$rawType] ?? str_replace(' ', '_', $rawType);
+        $validTypes = ['inventory_low', 'maintenance_due', 'weather_risk', 'vaccination_due', 'harvest_due', 'pest_outbreak', 'task_overdue', 'loan_payment_due', 'general'];
+        if (!in_array($alertType, $validTypes, true)) {
+            $alertType = 'general';
+        }
+
+        $severity = strtolower(trim((string) ($data['severity'] ?? 'info')));
+        if (!in_array($severity, ['info', 'warning', 'critical'], true)) {
+            $severity = 'info';
+        }
+
+        $resolvedUserId = ($userId !== null && $userId > 0)
+            ? $userId
+            : (!empty($data['user_id']) ? (int) $data['user_id'] : null);
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO alerts (farm_id, user_id, alert_type, title, message, severity, is_read, is_dismissed)
              VALUES (:farm_id, :user_id, :alert_type, :title, :message, :severity, 0, 0)'
         );
         $stmt->execute([
             ':farm_id'    => $farmId,
-            ':user_id'    => $userId,
-            ':alert_type' => $data['alert_type'] ?? 'general',
+            ':user_id'    => $resolvedUserId,
+            ':alert_type' => $alertType,
             ':title'      => $data['title'],
             ':message'    => $data['message'],
-            ':severity'   => $data['severity'] ?? 'info',
+            ':severity'   => $severity,
         ]);
         $alertId = (int) $this->pdo->lastInsertId();
 

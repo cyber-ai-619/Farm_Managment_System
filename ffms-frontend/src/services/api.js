@@ -41,7 +41,7 @@ function getFriendlyErrorMessage(status, rawMessage, endpoint) {
   }
 
   if (status === 500) {
-    return "The server encountered an unexpected error. Please check the backend logs or try again shortly.";
+    return cleaned || "The server encountered an unexpected error. Please check the backend logs or try again shortly.";
   }
 
   if (status === 401) {
@@ -118,7 +118,15 @@ function logDeveloperError(endpoint, method, status, errorData, originalError) {
  * @returns {Promise<any>} Parsed JSON response
  */
 async function request(endpoint, options = {}) {
-  const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  let url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  if (options.params && typeof options.params === "object") {
+    const qs = new URLSearchParams(
+      Object.entries(options.params).filter(([, v]) => v !== undefined && v !== null)
+    ).toString();
+    if (qs) {
+      url += (url.includes("?") ? "&" : "?") + qs;
+    }
+  }
   const method = options.method || "GET";
 
   const headers = {
@@ -132,8 +140,9 @@ async function request(endpoint, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  const { params: _unusedParams, ...fetchOptions } = options;
   const config = {
-    ...options,
+    ...fetchOptions,
     method,
     headers,
   };
@@ -150,38 +159,49 @@ async function request(endpoint, options = {}) {
       return { success: true };
     }
 
+    const rawText = await response.text();
     let data;
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      data = await response.json();
+    let isJsonParseError = false;
+
+    if (rawText) {
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        isJsonParseError = true;
+        data = {
+          success: false,
+          message: stripHtml(rawText) || `Server returned an invalid response (HTTP ${response.status}).`,
+        };
+      }
     } else {
-      const text = await response.text();
-      data = { success: response.ok, message: stripHtml(text) };
+      data = { success: response.ok };
     }
 
-    if (!response.ok) {
-      if (response.status === 401 && !endpoint.includes("/api/auth/login")) {
+    if (!response.ok || isJsonParseError || data?.success === false) {
+      const effectiveStatus = !response.ok ? response.status : isJsonParseError ? 500 : 400;
+
+      if (effectiveStatus === 401 && !endpoint.includes("/api/auth/login")) {
         // Token expired or invalid — clear local auth state
         localStorage.removeItem("ffms_token");
         localStorage.removeItem("ffms_user");
         window.dispatchEvent(new CustomEvent("ffms:unauthorized"));
       }
 
-      const rawMsg = data.message || data.error || `HTTP error ${response.status}`;
-      const userMessage = getFriendlyErrorMessage(response.status, rawMsg, endpoint);
+      const rawMsg = data?.message || data?.error || `HTTP error ${effectiveStatus}`;
+      const userMessage = getFriendlyErrorMessage(effectiveStatus, rawMsg, endpoint);
 
       // Log rich technical diagnostic in console for developers
-      logDeveloperError(endpoint, method, response.status, data, null);
+      logDeveloperError(endpoint, method, effectiveStatus, data, null);
 
       const error = new Error(userMessage);
-      error.status = response.status;
+      error.status = effectiveStatus;
       error.data = data;
       error.developerDetails = {
         endpoint,
         method,
-        status: response.status,
+        status: effectiveStatus,
         rawMessage: rawMsg,
-        debug: data.debug || null,
+        debug: data?.debug || null,
         url,
       };
       throw error;

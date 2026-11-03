@@ -34,7 +34,7 @@ export const authService = {
   },
 
   /**
-   * Register a new user account as a Farm Owner with an initial farm workspace
+   * Register a new user account as a Farm Owner with an initial farm workspace (Direct)
    * @param {object} param0 - { name, email, password, farm_name }
    */
   async register({ name, email, password, farm_name }) {
@@ -52,11 +52,66 @@ export const authService = {
   },
 
   /**
+   * Request temporal registration verification email (24-hour token)
+   * @param {object} param0 - { name, email, farm_name }
+   */
+  async requestRegistration({ name, email, farm_name }) {
+    return api.post("/api/auth/register-request", {
+      name,
+      email,
+      farm_name,
+    });
+  },
+
+  /**
+   * Verify a 24-hour registration token
+   * @param {string} token
+   */
+  async verifyRegistration(token) {
+    const res = await api.get(`/api/auth/verify-registration?token=${encodeURIComponent(token)}`);
+    return res.data;
+  },
+
+  /**
+   * Complete registration by setting password with valid temporal token
+   * @param {object} param0 - { token, password, name, farm_name }
+   */
+  async completeRegistration({ token, password, name, farm_name }) {
+    const data = await api.post("/api/auth/complete-registration", {
+      token,
+      password,
+      name,
+      farm_name,
+    });
+    if (data.token) {
+      localStorage.setItem("ffms_token", data.token);
+      cacheUser(data.user);
+    }
+    return data;
+  },
+
+  /**
+   * Request a 10-minute password reset link
+   * @param {string} email
+   */
+  async forgotPassword(email) {
+    return api.post("/api/auth/forgot-password", { email });
+  },
+
+  /**
+   * Reset password using temporal 10-minute token
+   * @param {object} param0 - { token, password }
+   */
+  async resetPassword({ token, password }) {
+    return api.post("/api/auth/reset-password", { token, password });
+  },
+
+  /**
    * Fetch invite details by token for auto-populating signup fields
    * @param {string} token
    */
   async getInvite(token) {
-    const res = await api.get("/api/auth/invite", { params: { token } });
+    const res = await api.get(`/api/auth/invite?token=${encodeURIComponent(token)}`);
     return res.data;
   },
 

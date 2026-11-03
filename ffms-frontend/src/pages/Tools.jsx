@@ -26,22 +26,27 @@ function Tools() {
   const [eqForm, setEqForm] = useState({
     farm_id: "",
     name: "",
-    type: "Tractor",
+    type: "tractor",
     model: "John Deere 5075E",
     serial_number: "",
-    status: "operational",
+    status: "available",
+    purchase_cost: 35000,
     purchase_price: 35000,
   });
 
   const [maintForm, setMaintForm] = useState({
     service_type: "50-Hour Oil & Filter Change",
+    next_service_date: new Date().toISOString().split("T")[0],
     scheduled_date: new Date().toISOString().split("T")[0],
     notes: "",
   });
 
   const [fuelForm, setFuelForm] = useState({
+    litres_added: 45,
     liters: 45,
+    cost_amount: 75.0,
     cost: 75.0,
+    logged_date: new Date().toISOString().split("T")[0],
     log_date: new Date().toISOString().split("T")[0],
   });
 
@@ -190,6 +195,7 @@ function Tools() {
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {equipmentList.map((eq) => {
                 const isSelected = selectedEq?.id === eq.id;
+                const isActiveStatus = ["available", "in_use", "operational"].includes(eq.status);
                 return (
                   <div
                     key={eq.id}
@@ -210,12 +216,12 @@ function Tools() {
                           fontWeight: 700,
                           padding: "2px 8px",
                           borderRadius: "10px",
-                          backgroundColor: eq.status === "operational" ? "#E8F5E9" : "#FFEBEE",
-                          color: eq.status === "operational" ? "#2E7D32" : "#C62828",
+                          backgroundColor: isActiveStatus ? "#E8F5E9" : "#FFEBEE",
+                          color: isActiveStatus ? "#2E7D32" : "#C62828",
                           textTransform: "uppercase",
                         }}
                       >
-                        {eq.status || "Operational"}
+                        {eq.status || "available"}
                       </span>
                     </div>
                     <p style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
@@ -292,7 +298,7 @@ function Tools() {
                           <div key={m.id} className="content-card">
                             <h4 style={{ margin: "0 0 4px" }}>🛠️ {m.service_type || "Routine Service"}</h4>
                             <p style={{ fontSize: "0.85rem", margin: 0 }}>
-                              Scheduled Date: <strong>{m.scheduled_date}</strong> {m.notes ? `| ${m.notes}` : ""}
+                              Scheduled Date: <strong>{m.next_service_date || m.scheduled_date}</strong> {m.notes ? `| ${m.notes}` : ""}
                             </p>
                           </div>
                         ))
@@ -323,9 +329,9 @@ function Tools() {
                       ) : (
                         fuelLogs.map((f) => (
                           <div key={f.id} className="content-card">
-                            <h4 style={{ margin: "0 0 4px" }}>⛽ {f.liters} Liters Refueled</h4>
+                            <h4 style={{ margin: "0 0 4px" }}>⛽ {f.litres_added ?? f.liters} Liters Refueled</h4>
                             <p style={{ fontSize: "0.85rem", margin: 0 }}>
-                              Cost: <strong>${f.cost || "0.00"}</strong> &bull; Date: <strong>{f.log_date}</strong>
+                              Cost: <strong>${f.cost_amount ?? f.cost ?? "0.00"}</strong> &bull; Date: <strong>{f.logged_date || f.log_date}</strong>
                             </p>
                           </div>
                         ))
@@ -344,9 +350,9 @@ function Tools() {
                     ) : (
                       repairs.map((r) => (
                         <div key={r.id} className="content-card">
-                          <h4 style={{ margin: "0 0 4px" }}>🔧 {r.repair_description || "Repair Job"}</h4>
+                          <h4 style={{ margin: "0 0 4px" }}>🔧 {r.description || r.repair_description || "Repair Job"}</h4>
                           <p style={{ fontSize: "0.85rem", margin: 0 }}>
-                            Cost: <strong>${r.cost || "0.00"}</strong> &bull; Date: <strong>{r.repair_date}</strong>
+                            Cost: <strong>${r.cost_amount ?? r.cost ?? "0.00"}</strong> &bull; Date: <strong>{r.repair_date}</strong>
                           </p>
                         </div>
                       ))
@@ -392,13 +398,18 @@ function Tools() {
                 onChange={(e) => setEqForm({ ...eqForm, type: e.target.value })}
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
-                <option value="Tractor">Tractor</option>
-                <option value="Harvester">Harvester</option>
-                <option value="Planter">Planter</option>
-                <option value="Plow">Plow</option>
-                <option value="Sprayer">Sprayer</option>
-                <option value="Trailer">Trailer</option>
-                <option value="Generator">Generator</option>
+                <option value="tractor">Tractor</option>
+                <option value="harvester">Harvester</option>
+                <option value="planter">Planter</option>
+                <option value="tillage">Tillage / Plow</option>
+                <option value="sprayer">Sprayer</option>
+                <option value="trailer">Trailer</option>
+                <option value="pump">Pump</option>
+                <option value="generator">Generator</option>
+                <option value="vehicle">Vehicle</option>
+                <option value="implement">Implement</option>
+                <option value="hand_tool">Hand Tool</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div className="form-field">
@@ -432,8 +443,8 @@ function Tools() {
             <label>Date</label>
             <input
               type="date"
-              value={maintForm.scheduled_date}
-              onChange={(e) => setMaintForm({ ...maintForm, scheduled_date: e.target.value })}
+              value={maintForm.next_service_date || maintForm.scheduled_date}
+              onChange={(e) => setMaintForm({ ...maintForm, next_service_date: e.target.value, scheduled_date: e.target.value })}
             />
           </div>
           <button type="submit" disabled={submitting} className="auth-button">
@@ -451,8 +462,8 @@ function Tools() {
               <input
                 type="number"
                 required
-                value={fuelForm.liters}
-                onChange={(e) => setFuelForm({ ...fuelForm, liters: e.target.value })}
+                value={fuelForm.litres_added ?? fuelForm.liters}
+                onChange={(e) => setFuelForm({ ...fuelForm, litres_added: e.target.value, liters: e.target.value })}
               />
             </div>
             <div className="form-field">
@@ -460,8 +471,8 @@ function Tools() {
               <input
                 type="number"
                 step="0.01"
-                value={fuelForm.cost}
-                onChange={(e) => setFuelForm({ ...fuelForm, cost: e.target.value })}
+                value={fuelForm.cost_amount ?? fuelForm.cost}
+                onChange={(e) => setFuelForm({ ...fuelForm, cost_amount: e.target.value, cost: e.target.value })}
               />
             </div>
           </div>

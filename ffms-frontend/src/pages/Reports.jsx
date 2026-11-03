@@ -619,7 +619,7 @@ function Reports() {
                       <tr key={row.id} style={{ borderBottom: "1px solid #EEE" }}>
                         <td style={{ padding: "10px 14px", fontWeight: 600 }}>{row.name}</td>
                         <td style={{ padding: "10px 14px" }}>{row.category}</td>
-                        <td style={{ padding: "10px 14px" }}>{Number(row.quantity_on_hand).toLocaleString()} {row.unit}</td>
+                        <td style={{ padding: "10px 14px" }}>{Number(row.quantity_on_hand).toLocaleString()} {row.unit_of_measure || row.unit || ""}</td>
                         <td style={{ padding: "10px 14px" }}>${Number(row.unit_cost).toFixed(2)}</td>
                         <td style={{ padding: "10px 14px", fontWeight: 700, color: "#1E4632" }}>
                           ${Number(row.total_item_value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -755,7 +755,7 @@ function Reports() {
                         <td style={{ padding: "10px 14px" }}>{row.application_date}</td>
                         <td style={{ padding: "10px 14px", fontWeight: 600, color: "#C0392B" }}>{row.pest_name || "General Pest"}</td>
                         <td style={{ padding: "10px 14px" }}>{row.field_name}</td>
-                        <td style={{ padding: "10px 14px" }}>{row.treatment_method || row.chemical_name || "—"}</td>
+                        <td style={{ padding: "10px 14px" }}>{row.chemical_product || row.treatment_type || row.treatment_method || row.chemical_name || "—"}</td>
                         <td style={{ padding: "10px 14px" }}>{row.severity || "—"}</td>
                         <td style={{ padding: "10px 14px" }}>{row.effectiveness || "completed"}</td>
                       </tr>

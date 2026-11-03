@@ -66,31 +66,59 @@ class HarvestModel
         return $row ?: null;
     }
 
+    private function normalizeQualityGrade(string $raw): string
+    {
+        $map = [
+            'premium'    => 'A',
+            'grade a'    => 'A',
+            'a'          => 'A',
+            'grade b'    => 'B',
+            'b'          => 'B',
+            'grade c'    => 'C',
+            'c'          => 'C',
+            'feed grade' => 'rejected',
+            'rejected'   => 'rejected',
+        ];
+        $key = strtolower(trim($raw));
+        return $map[$key] ?? 'A';
+    }
+
     public function create(int $farmId, int $userId, array $data): int
     {
+        $varietyId = !empty($data['variety_id']) ? (int) $data['variety_id'] : null;
+        $harvestDate = !empty($data['harvest_date']) ? $data['harvest_date'] : date('Y-m-d');
+        $expectedYieldKg = ($data['expected_yield_kg'] ?? '') !== '' ? (float) $data['expected_yield_kg'] : null;
+        $lossKg = ($data['loss_kg'] ?? '') !== '' ? (float) $data['loss_kg'] : 0.00;
+        $qualityGrade = $this->normalizeQualityGrade((string) ($data['quality_grade'] ?? 'A'));
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO harvest_records (farm_id, field_id, crop_id, variety_id, harvested_by, harvest_date, quantity_kg, expected_yield_kg, loss_kg, quality_grade, storage_location, notes)
              VALUES (:farm_id, :field_id, :crop_id, :variety_id, :harvested_by, :harvest_date, :quantity_kg, :expected_yield_kg, :loss_kg, :quality_grade, :storage_location, :notes)'
         );
         $stmt->execute([
             ':farm_id'           => $farmId,
-            ':field_id'          => $data['field_id'],
-            ':crop_id'           => $data['crop_id'],
-            ':variety_id'        => $data['variety_id'] ?? null,
+            ':field_id'          => (int) $data['field_id'],
+            ':crop_id'           => (int) $data['crop_id'],
+            ':variety_id'        => $varietyId,
             ':harvested_by'      => $userId,
-            ':harvest_date'      => $data['harvest_date'] ?? date('Y-m-d'),
-            ':quantity_kg'       => $data['quantity_kg'],
-            ':expected_yield_kg' => $data['expected_yield_kg'] ?? null,
-            ':loss_kg'           => $data['loss_kg'] ?? 0.00,
-            ':quality_grade'     => $data['quality_grade'] ?? 'A',
-            ':storage_location'  => $data['storage_location'] ?? null,
-            ':notes'             => $data['notes'] ?? null,
+            ':harvest_date'      => $harvestDate,
+            ':quantity_kg'       => (float) $data['quantity_kg'],
+            ':expected_yield_kg' => $expectedYieldKg,
+            ':loss_kg'           => $lossKg,
+            ':quality_grade'     => $qualityGrade,
+            ':storage_location'  => !empty($data['storage_location']) ? $data['storage_location'] : null,
+            ':notes'             => !empty($data['notes']) ? $data['notes'] : null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
 
     public function update(int $id, array $data): bool
     {
+        $harvestDate = !empty($data['harvest_date']) ? $data['harvest_date'] : date('Y-m-d');
+        $expectedYieldKg = ($data['expected_yield_kg'] ?? '') !== '' ? (float) $data['expected_yield_kg'] : null;
+        $lossKg = ($data['loss_kg'] ?? '') !== '' ? (float) $data['loss_kg'] : 0.00;
+        $qualityGrade = $this->normalizeQualityGrade((string) ($data['quality_grade'] ?? 'A'));
+
         $stmt = $this->pdo->prepare(
             'UPDATE harvest_records
              SET harvest_date = :harvest_date, quantity_kg = :quantity_kg,
@@ -100,13 +128,13 @@ class HarvestModel
         );
         return $stmt->execute([
             ':id'                => $id,
-            ':harvest_date'      => $data['harvest_date'] ?? date('Y-m-d'),
-            ':quantity_kg'       => $data['quantity_kg'],
-            ':expected_yield_kg' => $data['expected_yield_kg'] ?? null,
-            ':loss_kg'           => $data['loss_kg'] ?? 0.00,
-            ':quality_grade'     => $data['quality_grade'] ?? 'A',
-            ':storage_location'  => $data['storage_location'] ?? null,
-            ':notes'             => $data['notes'] ?? null,
+            ':harvest_date'      => $harvestDate,
+            ':quantity_kg'       => (float) $data['quantity_kg'],
+            ':expected_yield_kg' => $expectedYieldKg,
+            ':loss_kg'           => $lossKg,
+            ':quality_grade'     => $qualityGrade,
+            ':storage_location'  => !empty($data['storage_location']) ? $data['storage_location'] : null,
+            ':notes'             => !empty($data['notes']) ? $data['notes'] : null,
         ]);
     }
 

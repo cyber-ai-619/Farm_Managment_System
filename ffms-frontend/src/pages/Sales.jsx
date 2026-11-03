@@ -41,7 +41,8 @@ function Sales() {
   const [customerForm, setCustomerForm] = useState({
     farm_id: "",
     name: "",
-    customer_type: "Wholesale",
+    type: "wholesaler",
+    customer_type: "wholesaler",
     phone: "",
     email: "",
     address: "",
@@ -58,7 +59,7 @@ function Sales() {
   const [paymentForm, setPaymentForm] = useState({
     invoice_id: "",
     amount: "",
-    payment_method: "Bank Transfer",
+    payment_method: "bank_transfer",
     reference_number: "",
     payment_date: new Date().toISOString().split("T")[0],
   });
@@ -224,8 +225,8 @@ function Sales() {
     setSelectedInvoice(invoice);
     setPaymentForm({
       invoice_id: invoice.id,
-      amount: Number(invoice.total_amount || 0) - Number(invoice.paid_amount || 0),
-      payment_method: "Bank Transfer",
+      amount: Number(invoice.total_amount || 0) - Number(invoice.amount_paid ?? invoice.paid_amount ?? 0),
+      payment_method: "bank_transfer",
       reference_number: "",
       payment_date: new Date().toISOString().split("T")[0],
     });
@@ -236,7 +237,7 @@ function Sales() {
 
   // Financial calculations
   const totalSalesRevenue = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
-  const pendingOrdersCount = orders.filter((o) => o.status === "pending" || o.status === "confirmed").length;
+  const pendingOrdersCount = orders.filter((o) => ["draft", "pending", "confirmed", "processing"].includes(o.status)).length;
 
   return (
     <div className="page-wrapper">
@@ -397,13 +398,13 @@ function Sales() {
                                     : "#F57F17",
                               }}
                             >
-                              {o.status || "pending"}
+                              {o.status || "draft"}
                             </span>
                           </td>
                           <td style={{ padding: "12px 16px" }}>
                             {canManage && (
                               <select
-                                value={o.status || "pending"}
+                                value={o.status || "draft"}
                                 onChange={(e) => handleStatusChange(o.id, e.target.value)}
                                 style={{
                                   padding: "4px 8px",
@@ -412,11 +413,11 @@ function Sales() {
                                   fontSize: "12px",
                                 }}
                               >
-                                <option value="pending">Pending</option>
+                                <option value="draft">Draft</option>
                                 <option value="confirmed">Confirmed</option>
+                                <option value="processing">Processing</option>
                                 <option value="dispatched">Dispatched</option>
                                 <option value="delivered">Delivered</option>
-                                <option value="completed">Completed</option>
                                 <option value="cancelled">Cancelled</option>
                               </select>
                             )}
@@ -454,7 +455,7 @@ function Sales() {
                           color: "#1E4632",
                         }}
                       >
-                        {c.customer_type || "Wholesale"}
+                        {c.type || c.customer_type || "wholesaler"}
                       </span>
                     </div>
                     <div style={{ marginTop: "12px", fontSize: "13px", color: "#555", display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -509,13 +510,13 @@ function Sales() {
                   <tbody>
                     {marketPrices.map((p) => (
                       <tr key={p.id} style={{ borderBottom: "1px solid #EEE" }}>
-                        <td style={{ padding: "12px 16px" }}>{p.price_date}</td>
+                        <td style={{ padding: "12px 16px" }}>{p.recorded_date || p.price_date}</td>
                         <td style={{ padding: "12px 16px", fontWeight: 600, color: "#1E4632" }}>
-                          {p.crop_name || "Commodity #" + p.crop_id}
+                          {p.commodity_name || p.crop_name || "Commodity #" + p.crop_id}
                         </td>
-                        <td style={{ padding: "12px 16px" }}>{p.market_name || "Local Market"}</td>
+                        <td style={{ padding: "12px 16px" }}>{p.market_location || p.market_name || "Local Market"}</td>
                         <td style={{ padding: "12px 16px", fontWeight: 700, color: "#2E7D32" }}>
-                          ${Number(p.price || 0).toFixed(2)} / {p.unit || "kg"}
+                          ${Number(p.price_per_unit ?? p.price ?? 0).toFixed(2)} / {p.unit || "kg"}
                         </td>
                       </tr>
                     ))}
@@ -546,53 +547,58 @@ function Sales() {
                       </tr>
                     </thead>
                     <tbody>
-                      {invoices.map((inv) => (
-                        <tr key={inv.id} style={{ borderBottom: "1px solid #EEE" }}>
-                          <td style={{ padding: "12px 16px", fontWeight: 700 }}>
-                            {inv.invoice_number || `INV-${String(inv.id).padStart(4, "0")}`}
-                          </td>
-                          <td style={{ padding: "12px 16px" }}>ORD-{inv.sales_order_id}</td>
-                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>
-                            ${Number(inv.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </td>
-                          <td style={{ padding: "12px 16px", color: "#2E7D32", fontWeight: 600 }}>
-                            ${Number(inv.paid_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </td>
-                          <td style={{ padding: "12px 16px" }}>
-                            <span
-                              style={{
-                                padding: "4px 8px",
-                                borderRadius: "10px",
-                                fontSize: "12px",
-                                fontWeight: 600,
-                                backgroundColor: inv.payment_status === "paid" ? "#E8F5E9" : "#FFF8E1",
-                                color: inv.payment_status === "paid" ? "#2E7D32" : "#F57F17",
-                              }}
-                            >
-                              {inv.payment_status || "unpaid"}
-                            </span>
-                          </td>
-                          <td style={{ padding: "12px 16px" }}>
-                            {inv.payment_status !== "paid" && canManage && (
-                              <button
-                                type="button"
-                                onClick={() => openPaymentModal(inv)}
+                      {invoices.map((inv) => {
+                        const invStatus = inv.status ?? inv.payment_status ?? "unpaid";
+                        const invPaid = inv.amount_paid ?? inv.paid_amount ?? 0;
+                        const invOrderId = inv.order_id ?? inv.sales_order_id;
+                        return (
+                          <tr key={inv.id} style={{ borderBottom: "1px solid #EEE" }}>
+                            <td style={{ padding: "12px 16px", fontWeight: 700 }}>
+                              {inv.invoice_number || `INV-${String(inv.id).padStart(4, "0")}`}
+                            </td>
+                            <td style={{ padding: "12px 16px" }}>ORD-{invOrderId}</td>
+                            <td style={{ padding: "12px 16px", fontWeight: 600 }}>
+                              ${Number(inv.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: "12px 16px", color: "#2E7D32", fontWeight: 600 }}>
+                              ${Number(invPaid).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ padding: "12px 16px" }}>
+                              <span
                                 style={{
-                                  padding: "4px 10px",
-                                  backgroundColor: "#2E7D32",
-                                  color: "#FFF",
-                                  border: "none",
-                                  borderRadius: "4px",
+                                  padding: "4px 8px",
+                                  borderRadius: "10px",
                                   fontSize: "12px",
-                                  cursor: "pointer",
+                                  fontWeight: 600,
+                                  backgroundColor: invStatus === "paid" ? "#E8F5E9" : "#FFF8E1",
+                                  color: invStatus === "paid" ? "#2E7D32" : "#F57F17",
                                 }}
                               >
-                                Record Payment
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                                {invStatus}
+                              </span>
+                            </td>
+                            <td style={{ padding: "12px 16px" }}>
+                              {invStatus !== "paid" && canManage && (
+                                <button
+                                  type="button"
+                                  onClick={() => openPaymentModal(inv)}
+                                  style={{
+                                    padding: "4px 10px",
+                                    backgroundColor: "#2E7D32",
+                                    color: "#FFF",
+                                    border: "none",
+                                    borderRadius: "4px",
+                                    fontSize: "12px",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Record Payment
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -624,15 +630,17 @@ function Sales() {
                 Customer Type
               </label>
               <select
-                value={customerForm.customer_type}
-                onChange={(e) => setCustomerForm({ ...customerForm, customer_type: e.target.value })}
+                value={customerForm.type || customerForm.customer_type}
+                onChange={(e) => setCustomerForm({ ...customerForm, type: e.target.value, customer_type: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
-                <option value="Wholesale">Wholesale</option>
-                <option value="Retail">Retail</option>
-                <option value="Supermarket">Supermarket</option>
-                <option value="Food Processor">Food Processor</option>
-                <option value="Export">Export</option>
+                <option value="wholesaler">Wholesaler</option>
+                <option value="retailer">Retailer</option>
+                <option value="supermarket">Supermarket</option>
+                <option value="processor">Food Processor</option>
+                <option value="direct_consumer">Direct Consumer</option>
+                <option value="export">Export</option>
+                <option value="other">Other</option>
               </select>
             </div>
 
@@ -701,7 +709,7 @@ function Sales() {
                 <option value="">Select Customer</option>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.customer_type})
+                    {c.name} ({c.type || c.customer_type})
                   </option>
                 ))}
               </select>
@@ -925,10 +933,11 @@ function Sales() {
                 onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Cash">Cash</option>
-                <option value="Cheque">Cheque</option>
-                <option value="Mobile Money">Mobile Money</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cash">Cash</option>
+                <option value="cheque">Cheque</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="credit_card">Credit Card</option>
               </select>
             </div>
             <div>

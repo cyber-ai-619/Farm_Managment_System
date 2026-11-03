@@ -6,11 +6,13 @@ require_once __DIR__ . '/PlantingModel.php';
 
 class CropController
 {
+    private PDO           $pdo;
     private CropModel     $cropModel;
     private PlantingModel $plantingModel;
 
     public function __construct(PDO $pdo)
     {
+        $this->pdo           = $pdo;
         $this->cropModel     = new CropModel($pdo);
         $this->plantingModel = new PlantingModel($pdo);
     }
@@ -116,6 +118,7 @@ class CropController
         }
 
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body['variety_name'] = $body['variety_name'] ?? ($body['name'] ?? '');
         if (empty($body['variety_name'])) {
             respond(['success' => false, 'message' => 'variety_name is required.'], 422);
         }
@@ -183,6 +186,36 @@ class CropController
         requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
 
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        if (empty($body['planting_id']) && !empty($body['field_id'])) {
+            $fieldId = (int) $body['field_id'];
+            $stmt = $this->pdo->prepare(
+                'SELECT id FROM planting_schedules WHERE crop_id = :crop_id AND field_id = :field_id ORDER BY planting_date DESC, id DESC LIMIT 1'
+            );
+            $stmt->execute([':crop_id' => $cropId, ':field_id' => $fieldId]);
+            $foundId = $stmt->fetchColumn();
+
+            if (!$foundId) {
+                $stmt2 = $this->pdo->prepare(
+                    'SELECT id FROM planting_schedules WHERE crop_id = :crop_id ORDER BY planting_date DESC, id DESC LIMIT 1'
+                );
+                $stmt2->execute([':crop_id' => $cropId]);
+                $foundId = $stmt2->fetchColumn();
+            }
+
+            if (!$foundId) {
+                $foundId = $this->plantingModel->create([
+                    'field_id'      => $fieldId,
+                    'crop_id'       => $cropId,
+                    'planted_by'    => (int) $user['sub'],
+                    'planting_date' => date('Y-m-d'),
+                    'status'        => 'planted',
+                ]);
+            }
+
+            $body['planting_id'] = (int) $foundId;
+        }
+
         $required = ['planting_id', 'fertilizer_name', 'quantity_kg', 'application_date'];
         foreach ($required as $field) {
             if (empty($body[$field])) {

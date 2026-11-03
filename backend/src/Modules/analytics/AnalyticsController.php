@@ -20,7 +20,7 @@ class AnalyticsController
     public function dashboard(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
 
         // 1. Farm & Land Overview
         $farmStmt = $this->pdo->prepare(
@@ -163,7 +163,7 @@ class AnalyticsController
     public function yieldAnalytics(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
 
         $stmt = $this->pdo->prepare(
             'SELECT c.name AS crop_name,
@@ -189,7 +189,7 @@ class AnalyticsController
     public function financeAnalytics(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $year   = isset($_GET['year']) ? (int) $_GET['year'] : (int) date('Y');
 
         $incStmt = $this->pdo->prepare(
@@ -229,7 +229,7 @@ class AnalyticsController
     public function weatherVsYield(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
 
         $stmt = $this->pdo->prepare(
             'SELECT c.name AS crop_name,

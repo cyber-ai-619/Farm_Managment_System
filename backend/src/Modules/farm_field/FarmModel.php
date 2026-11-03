@@ -49,11 +49,11 @@ class FarmModel
                 'SELECT DISTINCT f.*, u.name AS owner_name
                  FROM farms f
                  JOIN users u ON u.id = f.owner_id
-                 LEFT JOIN farm_members fm ON fm.farm_id = f.id AND fm.user_id = :user_id AND fm.status = "active"
-                 WHERE f.owner_id = :user_id OR fm.user_id = :user_id
+                 LEFT JOIN farm_members fm ON fm.farm_id = f.id AND fm.user_id = :uid1 AND fm.status = "active"
+                 WHERE f.owner_id = :uid2 OR fm.user_id = :uid3
                  ORDER BY f.created_at DESC'
             );
-            $stmt->execute([':user_id' => $userId]);
+            $stmt->execute([':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Throwable) {
             // Fallback if farm_members table has not been migrated yet
@@ -97,9 +97,9 @@ class FarmModel
             ':owner_id'      => $data['owner_id'],
             ':name'          => $data['name'],
             ':location'      => $data['location']      ?? null,
-            ':latitude'      => $data['latitude']      ?? null,
-            ':longitude'     => $data['longitude']     ?? null,
-            ':total_area_ha' => $data['total_area_ha'] ?? null,
+            ':latitude'      => ($data['latitude'] ?? '') !== '' ? (float) $data['latitude'] : null,
+            ':longitude'     => ($data['longitude'] ?? '') !== '' ? (float) $data['longitude'] : null,
+            ':total_area_ha' => ($data['total_area_ha'] ?? '') !== '' ? (float) $data['total_area_ha'] : null,
             ':description'   => $data['description']   ?? null,
         ]);
         $farmId = (int) $this->pdo->lastInsertId();
@@ -138,9 +138,9 @@ class FarmModel
         return $stmt->execute([
             ':name'          => $data['name'],
             ':location'      => $data['location']      ?? null,
-            ':latitude'      => $data['latitude']      ?? null,
-            ':longitude'     => $data['longitude']     ?? null,
-            ':total_area_ha' => $data['total_area_ha'] ?? null,
+            ':latitude'      => ($data['latitude'] ?? '') !== '' ? (float) $data['latitude'] : null,
+            ':longitude'     => ($data['longitude'] ?? '') !== '' ? (float) $data['longitude'] : null,
+            ':total_area_ha' => ($data['total_area_ha'] ?? '') !== '' ? (float) $data['total_area_ha'] : null,
             ':description'   => $data['description']   ?? null,
             ':is_active'     => $data['is_active']     ?? 1,
             ':id'            => $id,

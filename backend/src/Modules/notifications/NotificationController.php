@@ -28,7 +28,7 @@ class NotificationController
     public function index(): void
     {
         $user   = requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
 
         // Auto-run scanner when fetching alerts
         if (!isset($_GET['skip_scan'])) {
@@ -44,7 +44,7 @@ class NotificationController
     public function history(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $limit  = isset($_GET['limit']) ? (int) $_GET['limit'] : 50;
 
         $history = $this->alertModel->findAlertHistory($farmId, $limit);
@@ -60,13 +60,18 @@ class NotificationController
             respond(['success' => false, 'message' => 'title and message are required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
-        $userId = isset($body['user_id']) ? (int) $body['user_id'] : null;
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
+        $userId = !empty($body['user_id']) ? (int) $body['user_id'] : null;
 
         $id = $this->alertModel->createAlert($farmId, $userId, $body);
         $this->audit->log('alert.created', (int) $user['sub'], 'alerts', $id);
 
         respond(['success' => true, 'message' => 'Alert created successfully.', 'id' => $id], 201);
+    }
+
+    public function storeAlert(): void
+    {
+        $this->store();
     }
 
     public function dismiss(int $id): void
@@ -98,7 +103,8 @@ class NotificationController
     public function runScan(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $body = $this->jsonBody();
+        $farmId = resolveFarmId($_GET['farm_id'] ?? ($body['farm_id'] ?? null));
         $generated = $this->triggerService->runAutomatedChecks($farmId);
 
         respond([

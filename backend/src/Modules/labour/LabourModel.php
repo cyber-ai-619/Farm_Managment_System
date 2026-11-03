@@ -81,31 +81,37 @@ class LabourModel
             $role = 'field_worker';
         }
 
+        $userId = !empty($data['user_id']) ? (int) $data['user_id'] : null;
+        $dailyRate = ($data['daily_rate'] ?? '') !== '' ? (float) $data['daily_rate'] : 0.00;
+        $hireDate = !empty($data['hire_date']) ? $data['hire_date'] : date('Y-m-d');
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO workers (farm_id, user_id, first_name, last_name, id_national_number, phone, email, role, employment_type, daily_rate, hire_date, status, emergency_contact, notes)
              VALUES (:farm_id, :user_id, :first_name, :last_name, :id_national_number, :phone, :email, :role, :employment_type, :daily_rate, :hire_date, :status, :emergency_contact, :notes)'
         );
         $stmt->execute([
             ':farm_id'            => $farmId,
-            ':user_id'            => $data['user_id'] ?? null,
+            ':user_id'            => $userId,
             ':first_name'         => $data['first_name'],
             ':last_name'          => $data['last_name'],
-            ':id_national_number' => $data['id_national_number'] ?? null,
-            ':phone'              => $data['phone'] ?? null,
-            ':email'              => $data['email'] ?? null,
+            ':id_national_number' => !empty($data['id_national_number']) ? $data['id_national_number'] : null,
+            ':phone'              => !empty($data['phone']) ? $data['phone'] : null,
+            ':email'              => !empty($data['email']) ? $data['email'] : null,
             ':role'               => $role,
-            ':employment_type'    => $data['employment_type'] ?? 'permanent',
-            ':daily_rate'         => $data['daily_rate'] ?? 0.00,
-            ':hire_date'          => $data['hire_date'] ?? date('Y-m-d'),
-            ':status'             => $data['status'] ?? 'active',
-            ':emergency_contact'  => $data['emergency_contact'] ?? null,
-            ':notes'              => $data['notes'] ?? null,
+            ':employment_type'    => !empty($data['employment_type']) ? $data['employment_type'] : 'permanent',
+            ':daily_rate'         => $dailyRate,
+            ':hire_date'          => $hireDate,
+            ':status'             => !empty($data['status']) ? $data['status'] : 'active',
+            ':emergency_contact'  => !empty($data['emergency_contact']) ? $data['emergency_contact'] : null,
+            ':notes'              => !empty($data['notes']) ? $data['notes'] : null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
 
     public function update(int $id, array $data): bool
     {
+        $dailyRate = ($data['daily_rate'] ?? '') !== '' ? (float) $data['daily_rate'] : 0.00;
+
         $stmt = $this->pdo->prepare(
             'UPDATE workers
              SET first_name = :first_name, last_name = :last_name, phone = :phone, email = :email,
@@ -117,14 +123,14 @@ class LabourModel
             ':id'                => $id,
             ':first_name'        => $data['first_name'],
             ':last_name'         => $data['last_name'],
-            ':phone'             => $data['phone'] ?? null,
-            ':email'             => $data['email'] ?? null,
-            ':role'              => $data['role'] ?? 'field_worker',
-            ':employment_type'   => $data['employment_type'] ?? 'permanent',
-            ':daily_rate'        => $data['daily_rate'] ?? 0.00,
-            ':status'            => $data['status'] ?? 'active',
-            ':emergency_contact' => $data['emergency_contact'] ?? null,
-            ':notes'             => $data['notes'] ?? null,
+            ':phone'             => !empty($data['phone']) ? $data['phone'] : null,
+            ':email'             => !empty($data['email']) ? $data['email'] : null,
+            ':role'              => !empty($data['role']) ? $data['role'] : 'field_worker',
+            ':employment_type'   => !empty($data['employment_type']) ? $data['employment_type'] : 'permanent',
+            ':daily_rate'        => $dailyRate,
+            ':status'            => !empty($data['status']) ? $data['status'] : 'active',
+            ':emergency_contact' => !empty($data['emergency_contact']) ? $data['emergency_contact'] : null,
+            ':notes'             => !empty($data['notes']) ? $data['notes'] : null,
         ]);
     }
 
@@ -134,6 +140,11 @@ class LabourModel
 
     public function recordAttendance(int $workerId, int $farmId, int $userId, array $data): int
     {
+        $clockIn = !empty($data['clock_in_time']) ? $data['clock_in_time'] : null;
+        $clockOut = !empty($data['clock_out_time']) ? $data['clock_out_time'] : null;
+        $hoursWorked = ($data['hours_worked'] ?? '') !== '' ? (float) $data['hours_worked'] : 8.00;
+        $overtimeHours = ($data['overtime_hours'] ?? '') !== '' ? (float) $data['overtime_hours'] : 0.00;
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO worker_attendance (worker_id, farm_id, recorded_by, work_date, clock_in_time, clock_out_time, status, hours_worked, overtime_hours, is_verified, notes)
              VALUES (:worker_id, :farm_id, :recorded_by, :work_date, :clock_in_time, :clock_out_time, :status, :hours_worked, :overtime_hours, :is_verified, :notes)
@@ -150,14 +161,14 @@ class LabourModel
             ':worker_id'      => $workerId,
             ':farm_id'        => $farmId,
             ':recorded_by'    => $userId,
-            ':work_date'      => $data['work_date'] ?? date('Y-m-d'),
-            ':clock_in_time'  => $data['clock_in_time'] ?? null,
-            ':clock_out_time' => $data['clock_out_time'] ?? null,
-            ':status'         => $data['status'] ?? 'present',
-            ':hours_worked'   => $data['hours_worked'] ?? 8.00,
-            ':overtime_hours' => $data['overtime_hours'] ?? 0.00,
+            ':work_date'      => !empty($data['work_date']) ? $data['work_date'] : date('Y-m-d'),
+            ':clock_in_time'  => $clockIn,
+            ':clock_out_time' => $clockOut,
+            ':status'         => !empty($data['status']) ? $data['status'] : 'present',
+            ':hours_worked'   => $hoursWorked,
+            ':overtime_hours' => $overtimeHours,
             ':is_verified'    => isset($data['is_verified']) ? (int) $data['is_verified'] : 0,
-            ':notes'          => $data['notes'] ?? null,
+            ':notes'          => !empty($data['notes']) ? $data['notes'] : null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -339,20 +350,24 @@ class LabourModel
 
     public function createTask(int $farmId, int $userId, array $data): int
     {
+        $fieldId = !empty($data['field_id']) ? (int) $data['field_id'] : null;
+        $workerId = !empty($data['worker_id']) ? (int) $data['worker_id'] : null;
+        $dueDate = !empty($data['due_date']) ? $data['due_date'] : null;
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO task_assignments (farm_id, field_id, worker_id, assigned_by, title, description, priority, due_date, status)
              VALUES (:farm_id, :field_id, :worker_id, :assigned_by, :title, :description, :priority, :due_date, :status)'
         );
         $stmt->execute([
             ':farm_id'     => $farmId,
-            ':field_id'    => $data['field_id'] ?? null,
-            ':worker_id'   => $data['worker_id'] ?? null,
+            ':field_id'    => $fieldId,
+            ':worker_id'   => $workerId,
             ':assigned_by' => $userId,
             ':title'       => $data['title'],
-            ':description' => $data['description'] ?? null,
-            ':priority'    => $data['priority'] ?? 'medium',
-            ':due_date'    => $data['due_date'] ?? null,
-            ':status'      => $data['status'] ?? 'pending',
+            ':description' => !empty($data['description']) ? $data['description'] : null,
+            ':priority'    => !empty($data['priority']) ? $data['priority'] : 'medium',
+            ':due_date'    => $dueDate,
+            ':status'      => !empty($data['status']) ? $data['status'] : 'pending',
         ]);
         return (int) $this->pdo->lastInsertId();
     }
@@ -365,8 +380,8 @@ class LabourModel
         $stmt = $this->pdo->prepare(
             'UPDATE task_assignments
              SET status = :status,
-                 completed_at = IF(:status = "completed", COALESCE(completed_at, :completed_at), completed_at),
-                 started_at = IF(:status = "in_progress", COALESCE(started_at, :started_at), started_at)
+                 completed_at = COALESCE(completed_at, :completed_at),
+                 started_at = COALESCE(started_at, :started_at)
              WHERE id = :id'
         );
         return $stmt->execute([
@@ -385,16 +400,16 @@ class LabourModel
         $stmt = $this->pdo->prepare(
             'UPDATE task_assignments
              SET status = :status,
-                 started_at = IF(:status = "in_progress", COALESCE(started_at, :started_at), started_at),
-                 completed_at = IF(:status = "completed", COALESCE(completed_at, :completed_at), completed_at),
-                 completion_notes = IF(:completion_notes IS NOT NULL, :completion_notes, completion_notes)
+                 started_at = COALESCE(started_at, :started_at),
+                 completed_at = COALESCE(completed_at, :completed_at),
+                 completion_notes = COALESCE(:completion_notes, completion_notes)
              WHERE id = :task_id AND worker_id = :worker_id'
         );
         return $stmt->execute([
             ':status'           => $status,
             ':started_at'       => $startedAt,
             ':completed_at'     => $completedAt,
-            ':completion_notes' => $completionNotes,
+            ':completion_notes' => ($completionNotes !== '') ? $completionNotes : null,
             ':task_id'          => $taskId,
             ':worker_id'        => $workerId,
         ]);
@@ -457,29 +472,52 @@ class LabourModel
             $deductions = 0.00;
             $netPayable = round($baseSalary + $overtimeAmount + $bonusAmount - $deductions, 2);
 
-            // Insert or update draft payroll record
-            $upsertStmt = $this->pdo->prepare(
-                'INSERT INTO payroll_records (worker_id, farm_id, recorded_by, period_start, period_end, days_worked, base_salary, overtime_amount, bonus_amount, deductions, net_payable, payment_status)
-                 VALUES (:worker_id, :farm_id, :recorded_by, :period_start, :period_end, :days_worked, :base_salary, :overtime_amount, :bonus_amount, :deductions, :net_payable, "pending")
-                 ON DUPLICATE KEY UPDATE
-                     days_worked = VALUES(days_worked),
-                     base_salary = VALUES(base_salary),
-                     overtime_amount = VALUES(overtime_amount),
-                     net_payable = VALUES(net_payable)'
+            // Check if a payroll record already exists for (worker_id, period_start, period_end)
+            $checkStmt = $this->pdo->prepare(
+                'SELECT id FROM payroll_records WHERE worker_id = :worker_id AND period_start = :period_start AND period_end = :period_end LIMIT 1'
             );
-            $upsertStmt->execute([
-                ':worker_id'       => $workerId,
-                ':farm_id'         => $farmId,
-                ':recorded_by'     => $recorderId,
-                ':period_start'    => $startDate,
-                ':period_end'      => $endDate,
-                ':days_worked'     => $daysWorked,
-                ':base_salary'     => $baseSalary,
-                ':overtime_amount' => $overtimeAmount,
-                ':bonus_amount'    => $bonusAmount,
-                ':deductions'      => $deductions,
-                ':net_payable'     => $netPayable,
+            $checkStmt->execute([
+                ':worker_id'    => $workerId,
+                ':period_start' => $startDate,
+                ':period_end'   => $endDate,
             ]);
+            $existingId = $checkStmt->fetchColumn();
+
+            if ($existingId) {
+                $updateStmt = $this->pdo->prepare(
+                    'UPDATE payroll_records
+                     SET days_worked = :days_worked,
+                         base_salary = :base_salary,
+                         overtime_amount = :overtime_amount,
+                         net_payable = :net_payable
+                     WHERE id = :id'
+                );
+                $updateStmt->execute([
+                    ':days_worked'     => $daysWorked,
+                    ':base_salary'     => $baseSalary,
+                    ':overtime_amount' => $overtimeAmount,
+                    ':net_payable'     => $netPayable,
+                    ':id'              => (int) $existingId,
+                ]);
+            } else {
+                $insertStmt = $this->pdo->prepare(
+                    'INSERT INTO payroll_records (worker_id, farm_id, recorded_by, period_start, period_end, days_worked, base_salary, overtime_amount, bonus_amount, deductions, net_payable, payment_status)
+                     VALUES (:worker_id, :farm_id, :recorded_by, :period_start, :period_end, :days_worked, :base_salary, :overtime_amount, :bonus_amount, :deductions, :net_payable, "pending")'
+                );
+                $insertStmt->execute([
+                    ':worker_id'       => $workerId,
+                    ':farm_id'         => $farmId,
+                    ':recorded_by'     => $recorderId,
+                    ':period_start'    => $startDate,
+                    ':period_end'      => $endDate,
+                    ':days_worked'     => $daysWorked,
+                    ':base_salary'     => $baseSalary,
+                    ':overtime_amount' => $overtimeAmount,
+                    ':bonus_amount'    => $bonusAmount,
+                    ':deductions'      => $deductions,
+                    ':net_payable'     => $netPayable,
+                ]);
+            }
 
             $results[] = [
                 'worker_id'       => $workerId,
@@ -534,6 +572,9 @@ class LabourModel
 
     public function updatePayrollPayment(int $payrollId, string $status, ?string $method = null, ?string $paymentDate = null, ?string $notes = null): bool
     {
+        $cleanMethod = ($method !== null && $method !== '') ? $method : null;
+        $cleanNotes = ($notes !== null && $notes !== '') ? $notes : null;
+
         $stmt = $this->pdo->prepare(
             'UPDATE payroll_records
              SET payment_status = :status,
@@ -544,9 +585,9 @@ class LabourModel
         );
         return $stmt->execute([
             ':status'       => $status,
-            ':method'       => $method,
+            ':method'       => $cleanMethod,
             ':payment_date' => $paymentDate ?: ($status === 'paid' ? date('Y-m-d') : null),
-            ':notes'        => $notes,
+            ':notes'        => $cleanNotes,
             ':id'           => $payrollId,
         ]);
     }
@@ -557,6 +598,8 @@ class LabourModel
 
     public function recordIncident(int $farmId, ?int $workerId, int $reportedBy, array $data): int
     {
+        $fieldId = !empty($data['field_id']) ? (int) $data['field_id'] : null;
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO field_incidents (farm_id, worker_id, reported_by, field_id, type, severity, title, description, status)
              VALUES (:farm_id, :worker_id, :reported_by, :field_id, :type, :severity, :title, :description, "open")'
@@ -565,11 +608,11 @@ class LabourModel
             ':farm_id'      => $farmId,
             ':worker_id'    => $workerId,
             ':reported_by'  => $reportedBy,
-            ':field_id'     => $data['field_id'] ?? null,
-            ':type'         => $data['type'] ?? 'hazard',
-            ':severity'     => $data['severity'] ?? 'medium',
+            ':field_id'     => $fieldId,
+            ':type'         => !empty($data['type']) ? $data['type'] : 'hazard',
+            ':severity'     => !empty($data['severity']) ? $data['severity'] : 'medium',
             ':title'        => $data['title'],
-            ':description'  => $data['description'] ?? null,
+            ':description'  => !empty($data['description']) ? $data['description'] : null,
         ]);
         return (int) $this->pdo->lastInsertId();
     }

@@ -24,7 +24,7 @@ class FieldController
         if (!$farm) {
             respond(['success' => false, 'message' => 'Farm not found.'], 404);
         }
-        if ($user['role'] !== 'admin' && (int) $farm['owner_id'] !== (int) $user['sub']) {
+        if (!$this->farmModel->hasAccess($farmId, (int) $user['sub'], (string) ($user['role'] ?? ''))) {
             respond(['success' => false, 'message' => 'Forbidden.'], 403);
         }
         return $farm;

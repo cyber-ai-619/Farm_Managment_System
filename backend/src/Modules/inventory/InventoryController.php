@@ -24,7 +24,7 @@ class InventoryController
     public function index(): void
     {
         requireAuth();
-        $farmId   = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId   = resolveFarmId($_GET['farm_id'] ?? null);
         $category = $_GET['category'] ?? null;
 
         $items = $this->model->findByFarm($farmId, $category);
@@ -45,15 +45,16 @@ class InventoryController
     public function lowStock(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $lowItems = $this->model->findLowStock($farmId);
         respond(['success' => true, 'count' => count($lowItems), 'data' => $lowItems]);
     }
 
     public function store(): void
     {
-        $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
+        $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'accountant']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['name']) || empty($body['farm_id'])) {
             respond(['success' => false, 'message' => 'name and farm_id are required.'], 422);
@@ -67,8 +68,9 @@ class InventoryController
 
     public function update(int $id): void
     {
-        $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
+        $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'accountant']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['name'])) {
             respond(['success' => false, 'message' => 'name is required.'], 422);
@@ -84,6 +86,7 @@ class InventoryController
     {
         $user = requireAuth();
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['quantity']) || (float) $body['quantity'] <= 0) {
             respond(['success' => false, 'message' => 'Positive quantity is required.'], 422);
@@ -113,6 +116,7 @@ class InventoryController
     {
         $user = requireAuth();
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['quantity']) || (float) $body['quantity'] <= 0) {
             respond(['success' => false, 'message' => 'Positive quantity is required.'], 422);

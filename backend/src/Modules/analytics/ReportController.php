@@ -19,7 +19,7 @@ class ReportController
 
     private function getFilterParams(): array
     {
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $from   = $_GET['from'] ?? date('Y-01-01');
         $to     = $_GET['to'] ?? date('Y-12-31');
         return [$farmId, $from, $to];
@@ -83,11 +83,11 @@ class ReportController
         [$farmId, $from, $to] = $this->getFilterParams();
 
         $stmt = $this->pdo->prepare(
-            'SELECT a.*, b.name AS breed_name, b.species,
+            'SELECT a.*, b.name AS breed_name,
                     (SELECT COUNT(*) FROM treatments t WHERE t.animal_id = a.id AND t.treatment_date BETWEEN :from AND :to) AS treatments_count,
                     (SELECT COUNT(*) FROM vaccinations v WHERE v.animal_id = a.id AND v.vaccination_date BETWEEN :from2 AND :to2) AS vaccinations_count
              FROM animals a
-             JOIN breeds b ON b.id = a.breed_id
+             LEFT JOIN breeds b ON b.id = a.breed_id
              WHERE a.farm_id = :farm_id
              ORDER BY a.tag_number ASC'
         );
@@ -169,7 +169,7 @@ class ReportController
     public function inventory(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
 
         $stmt = $this->pdo->prepare(
             'SELECT i.*, (i.quantity_on_hand * i.unit_cost) AS total_item_value
@@ -192,7 +192,7 @@ class ReportController
         $stmt = $this->pdo->prepare(
             'SELECT w.id, CONCAT(w.first_name, " ", w.last_name) AS name, w.role, w.daily_rate AS daily_wage,
                     (SELECT COUNT(*) FROM worker_attendance wa WHERE wa.worker_id = w.id AND wa.work_date BETWEEN :from AND :to AND wa.status = "present") AS days_worked,
-                    (SELECT COUNT(*) FROM task_assignments ta WHERE ta.worker_id = w.id AND ta.created_at BETWEEN :from2 AND :to2 AND ta.status = "completed") AS tasks_completed
+                    (SELECT COUNT(*) FROM task_assignments ta WHERE ta.worker_id = w.id AND DATE(ta.created_at) BETWEEN :from2 AND :to2 AND ta.status = "completed") AS tasks_completed
              FROM workers w
              WHERE w.farm_id = :farm_id
              ORDER BY w.first_name ASC, w.last_name ASC'
@@ -246,7 +246,7 @@ class ReportController
     public function equipment(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
 
         $stmt = $this->pdo->prepare(
             'SELECT e.*,

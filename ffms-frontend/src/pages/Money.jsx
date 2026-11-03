@@ -29,9 +29,9 @@ function Money() {
   // Forms
   const [incomeForm, setIncomeForm] = useState({
     farm_id: "",
-    category: "Crop Sales",
+    category: "crop_sales",
     amount: 1500,
-    payment_method: "Bank Transfer",
+    payment_method: "bank_transfer",
     reference_number: "",
     transaction_date: new Date().toISOString().split("T")[0],
     description: "",
@@ -39,9 +39,9 @@ function Money() {
 
   const [expenseForm, setExpenseForm] = useState({
     farm_id: "",
-    category: "Fertilizer & Seeds",
+    category: "fertilizers",
     amount: 450,
-    payment_method: "Cash",
+    payment_method: "cash",
     vendor_name: "Agritech Supplies",
     transaction_date: new Date().toISOString().split("T")[0],
     description: "",
@@ -427,14 +427,14 @@ function Money() {
                     <tbody>
                       {incomeList.map((inc) => (
                         <tr key={inc.id} style={{ borderBottom: "1px solid #EEE" }}>
-                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{inc.transaction_date}</td>
+                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{inc.date_received || inc.transaction_date}</td>
                           <td style={{ padding: "12px 16px" }}>{inc.category}</td>
                           <td style={{ padding: "12px 16px", fontWeight: 700, color: "#2E7D32" }}>
                             +${Number(inc.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </td>
                           <td style={{ padding: "12px 16px" }}>{inc.payment_method}</td>
                           <td style={{ padding: "12px 16px", fontSize: "12px", color: "#666" }}>
-                            {inc.reference_number || "—"}
+                            {inc.payer_name || inc.reference_number || "—"}
                           </td>
                           <td style={{ padding: "12px 16px" }}>{inc.description || "—"}</td>
                         </tr>
@@ -469,7 +469,7 @@ function Money() {
                     <tbody>
                       {expensesList.map((exp) => (
                         <tr key={exp.id} style={{ borderBottom: "1px solid #EEE" }}>
-                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{exp.transaction_date}</td>
+                          <td style={{ padding: "12px 16px", fontWeight: 600 }}>{exp.date_incurred || exp.transaction_date}</td>
                           <td style={{ padding: "12px 16px" }}>{exp.category}</td>
                           <td style={{ padding: "12px 16px", fontWeight: 700, color: "#C0392B" }}>
                             -${Number(exp.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -572,9 +572,9 @@ function Money() {
                         <td style={{ padding: "12px 16px", fontWeight: 700, color: "#1E4632" }}>
                           ${Number(loan.principal_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
-                        <td style={{ padding: "12px 16px" }}>{loan.interest_rate}% p.a.</td>
-                        <td style={{ padding: "12px 16px" }}>{loan.tenor_months} months</td>
-                        <td style={{ padding: "12px 16px" }}>{loan.purpose || "—"}</td>
+                        <td style={{ padding: "12px 16px" }}>{loan.interest_rate_pct ?? loan.interest_rate}% p.a.</td>
+                        <td style={{ padding: "12px 16px" }}>{loan.loan_term_months ?? loan.tenor_months} months</td>
+                        <td style={{ padding: "12px 16px" }}>{loan.notes || loan.purpose || "—"}</td>
                         <td style={{ padding: "12px 16px" }}>
                           <span
                             style={{
@@ -610,11 +610,15 @@ function Money() {
                 onChange={(e) => setIncomeForm({ ...incomeForm, category: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
-                <option value="Crop Sales">Crop Sales</option>
-                <option value="Livestock Sales">Livestock Sales</option>
-                <option value="Agri-Tourism">Agri-Tourism</option>
-                <option value="Consultancy & Services">Consultancy & Services</option>
-                <option value="Government Subsidies">Government Subsidies</option>
+                <option value="crop_sales">Crop Sales</option>
+                <option value="livestock_sales">Livestock Sales</option>
+                <option value="byproducts">Byproducts</option>
+                <option value="subsidies">Government Subsidies</option>
+                <option value="grants">Grants</option>
+                <option value="machinery_rental">Machinery Rental</option>
+                <option value="agritourism">Agri-Tourism</option>
+                <option value="consulting">Consultancy & Services</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div>
@@ -638,10 +642,11 @@ function Money() {
                 onChange={(e) => setIncomeForm({ ...incomeForm, payment_method: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
-                <option value="Bank Transfer">Bank Transfer</option>
-                <option value="Cash">Cash</option>
-                <option value="Cheque">Cheque</option>
-                <option value="Mobile Money">Mobile Money</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="cash">Cash</option>
+                <option value="cheque">Cheque</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div>
@@ -649,20 +654,20 @@ function Money() {
               <input
                 type="date"
                 required
-                value={incomeForm.transaction_date}
-                onChange={(e) => setIncomeForm({ ...incomeForm, transaction_date: e.target.value })}
+                value={incomeForm.date_received || incomeForm.transaction_date}
+                onChange={(e) => setIncomeForm({ ...incomeForm, transaction_date: e.target.value, date_received: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Reference #</label>
+            <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Reference # / Payer</label>
             <input
               type="text"
               placeholder="e.g. REC-89211"
-              value={incomeForm.reference_number}
-              onChange={(e) => setIncomeForm({ ...incomeForm, reference_number: e.target.value })}
+              value={incomeForm.payer_name ?? incomeForm.reference_number}
+              onChange={(e) => setIncomeForm({ ...incomeForm, reference_number: e.target.value, payer_name: e.target.value })}
               style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
             />
           </div>
@@ -707,13 +712,22 @@ function Money() {
                 onChange={(e) => setExpenseForm({ ...expenseForm, category: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
-                <option value="Fertilizer & Seeds">Fertilizer & Seeds</option>
-                <option value="Fuel & Energy">Fuel & Energy</option>
-                <option value="Equipment Maintenance">Equipment Maintenance</option>
-                <option value="Labour & Payroll">Labour & Payroll</option>
-                <option value="Pesticides & Chemicals">Pesticides & Chemicals</option>
-                <option value="Packaging & Logistics">Packaging & Logistics</option>
-                <option value="Utilities & Rent">Utilities & Rent</option>
+                <option value="fertilizers">Fertilizers</option>
+                <option value="seeds">Seeds</option>
+                <option value="chemicals">Pesticides & Chemicals</option>
+                <option value="animal_feed">Animal Feed</option>
+                <option value="veterinary">Veterinary</option>
+                <option value="fuel">Fuel & Energy</option>
+                <option value="labour_wages">Labour & Payroll</option>
+                <option value="equipment_maintenance">Equipment Maintenance</option>
+                <option value="machinery_repairs">Machinery Repairs</option>
+                <option value="irrigation_water">Irrigation & Water</option>
+                <option value="utilities">Utilities</option>
+                <option value="land_lease">Land Lease</option>
+                <option value="insurance">Insurance</option>
+                <option value="packaging">Packaging</option>
+                <option value="transport">Transport & Logistics</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div>
@@ -744,8 +758,8 @@ function Money() {
               <input
                 type="date"
                 required
-                value={expenseForm.transaction_date}
-                onChange={(e) => setExpenseForm({ ...expenseForm, transaction_date: e.target.value })}
+                value={expenseForm.date_incurred || expenseForm.transaction_date}
+                onChange={(e) => setExpenseForm({ ...expenseForm, transaction_date: e.target.value, date_incurred: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               />
             </div>
@@ -877,8 +891,8 @@ function Money() {
               <input
                 type="number"
                 step="0.01"
-                value={loanForm.interest_rate}
-                onChange={(e) => setLoanForm({ ...loanForm, interest_rate: e.target.value })}
+                value={loanForm.interest_rate_pct ?? loanForm.interest_rate}
+                onChange={(e) => setLoanForm({ ...loanForm, interest_rate: e.target.value, interest_rate_pct: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               />
             </div>
@@ -889,8 +903,8 @@ function Money() {
               <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Tenor (Months)</label>
               <input
                 type="number"
-                value={loanForm.tenor_months}
-                onChange={(e) => setLoanForm({ ...loanForm, tenor_months: e.target.value })}
+                value={loanForm.loan_term_months ?? loanForm.tenor_months}
+                onChange={(e) => setLoanForm({ ...loanForm, tenor_months: e.target.value, loan_term_months: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               />
             </div>
@@ -909,8 +923,8 @@ function Money() {
             <label style={{ display: "block", marginBottom: "4px", fontWeight: 600, fontSize: "13px" }}>Purpose</label>
             <input
               type="text"
-              value={loanForm.purpose}
-              onChange={(e) => setLoanForm({ ...loanForm, purpose: e.target.value })}
+              value={loanForm.notes ?? loanForm.purpose}
+              onChange={(e) => setLoanForm({ ...loanForm, purpose: e.target.value, notes: e.target.value })}
               style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
             />
           </div>

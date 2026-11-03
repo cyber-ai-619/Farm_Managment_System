@@ -2,6 +2,63 @@
 
 declare(strict_types=1);
 
+// Prevent PHP from emitting HTML error tags (<br /><b>Fatal error...) into JSON responses
+ini_set('display_errors', '0');
+ini_set('html_errors', '0');
+error_reporting(E_ALL);
+
+set_exception_handler(function (\Throwable $e): void {
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
+        header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    }
+
+    $status = 500;
+    $message = $e->getMessage() ?: 'An unexpected server error occurred.';
+
+    if ($e instanceof \PDOException) {
+        $status = 400;
+        // Provide a clear, actionable message while preserving technical debug details
+        $message = 'Database operation error: ' . $e->getMessage();
+    }
+
+    respond([
+        'success'    => false,
+        'message'    => $message,
+        'error_code' => $e instanceof \PDOException ? 'DATABASE_QUERY_ERROR' : 'SERVER_ERROR',
+        'debug'      => [
+            'type'    => get_class($e),
+            'message' => $e->getMessage(),
+            'file'    => basename($e->getFile()),
+            'line'    => $e->getLine(),
+        ],
+    ], $status);
+});
+
+register_shutdown_function(function (): void {
+    $error = error_get_last();
+    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Headers: Content-Type, Authorization');
+            header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+            http_response_code(500);
+        }
+        echo json_encode([
+            'success'    => false,
+            'message'    => 'Fatal server error: ' . $error['message'],
+            'error_code' => 'FATAL_ERROR',
+            'debug'      => [
+                'file' => basename($error['file']),
+                'line' => $error['line'],
+            ],
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+});
+
 // ---------------------------------------------------------------
 // Database connection
 // ---------------------------------------------------------------
@@ -45,7 +102,7 @@ function getPdo(): PDO
         $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::ATTR_EMULATE_PREPARES   => true,
         ];
 
         $dbSsl = $_ENV['DB_SSL'] ?? getenv('DB_SSL');
@@ -65,7 +122,7 @@ function getPdo(): PDO
         } catch (PDOException $e) {
             respond([
                 'success'    => false,
-                'message'    => 'Database connection failed. Please ensure MySQL is running in XAMPP.',
+                'message'    => 'Database connection failed. Please verify database service status and credentials.',
                 'error_code' => 'DATABASE_UNAVAILABLE',
                 'debug'      => [
                     'error'    => $e->getMessage(),
@@ -137,6 +194,65 @@ function respond(array $payload, int $statusCode = 200): void
     http_response_code($statusCode);
     echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     exit;
+}
+
+/**
+ * Resolve a valid farm_id for the current request.
+ * If $requestedFarmId is provided and exists in `farms`, returns it.
+ * Otherwise resolves the authenticated user's primary farm, or the first farm in the database.
+ */
+function resolveFarmId($requestedFarmId = null): int
+{
+    $pdo = getPdo();
+    $candidate = (int) ($requestedFarmId ?? ($_GET['farm_id'] ?? 0));
+
+    if ($candidate > 0) {
+        $stmt = $pdo->prepare('SELECT id FROM farms WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $candidate]);
+        if ($stmt->fetchColumn()) {
+            return $candidate;
+        }
+    }
+
+    require_once __DIR__ . '/Modules/security/JwtHelper.php';
+    $token = JwtHelper::fromHeader();
+    if ($token !== null) {
+        $payload = JwtHelper::verify($token);
+        if ($payload !== null && !empty($payload['sub'])) {
+            $userId = (int) $payload['sub'];
+            if (!empty($payload['farm_id'])) {
+                $jwtFarmId = (int) $payload['farm_id'];
+                $stmt = $pdo->prepare('SELECT id FROM farms WHERE id = :id LIMIT 1');
+                $stmt->execute([':id' => $jwtFarmId]);
+                if ($stmt->fetchColumn()) {
+                    return $jwtFarmId;
+                }
+            }
+            try {
+                $stmt = $pdo->prepare(
+                    'SELECT f.id FROM farms f
+                     LEFT JOIN farm_members fm ON fm.farm_id = f.id AND fm.user_id = :u1 AND fm.status = "active"
+                     WHERE f.owner_id = :u2 OR fm.user_id = :u3
+                     ORDER BY f.id ASC LIMIT 1'
+                );
+                $stmt->execute([':u1' => $userId, ':u2' => $userId, ':u3' => $userId]);
+                $userFarmId = $stmt->fetchColumn();
+                if ($userFarmId) {
+                    return (int) $userFarmId;
+                }
+            } catch (\Throwable) {
+                $stmt = $pdo->prepare('SELECT id FROM farms WHERE owner_id = :u1 ORDER BY id ASC LIMIT 1');
+                $stmt->execute([':u1' => $userId]);
+                $userFarmId = $stmt->fetchColumn();
+                if ($userFarmId) {
+                    return (int) $userFarmId;
+                }
+            }
+        }
+    }
+
+    $first = $pdo->query('SELECT id FROM farms ORDER BY id ASC LIMIT 1')->fetchColumn();
+    return $first ? (int) $first : 1;
 }
 
 function farm_module_catalog(): array

@@ -313,7 +313,7 @@ function Alerts() {
                                 textTransform: "capitalize",
                               }}
                             >
-                              {alert.category || "General"}
+                              {alert.alert_type || alert.category || "general"}
                             </span>
                             <span style={{ fontSize: "12px", color: "#888" }}>
                               {alert.created_at || "Just now"}
@@ -412,7 +412,7 @@ function Alerts() {
                               {item.severity}
                             </span>
                           </td>
-                          <td style={{ padding: "12px 16px", textTransform: "capitalize" }}>{item.category}</td>
+                          <td style={{ padding: "12px 16px", textTransform: "capitalize" }}>{item.alert_type || item.category || "general"}</td>
                           <td style={{ padding: "12px 16px", fontWeight: 600 }}>{item.title}</td>
                           <td style={{ padding: "12px 16px", color: "#555" }}>{item.message}</td>
                           <td style={{ padding: "12px 16px", fontSize: "12px", color: "#888" }}>
@@ -471,12 +471,14 @@ function Alerts() {
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
                 <option value="general">General</option>
-                <option value="weather">Weather</option>
-                <option value="irrigation">Irrigation / Water</option>
-                <option value="inventory">Inventory / Stock</option>
-                <option value="equipment">Equipment / Fleet</option>
-                <option value="pest_disease">Pest / Disease</option>
-                <option value="livestock">Livestock</option>
+                <option value="weather_risk">Weather Risk</option>
+                <option value="inventory_low">Inventory / Stock Low</option>
+                <option value="maintenance_due">Equipment Maintenance Due</option>
+                <option value="pest_outbreak">Pest / Disease Outbreak</option>
+                <option value="vaccination_due">Livestock Vaccination Due</option>
+                <option value="harvest_due">Harvest Due</option>
+                <option value="task_overdue">Task Overdue</option>
+                <option value="loan_payment_due">Loan Payment Due</option>
               </select>
             </div>
           </div>

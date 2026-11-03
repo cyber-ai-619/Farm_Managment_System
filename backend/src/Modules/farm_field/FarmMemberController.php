@@ -109,9 +109,9 @@ class FarmMemberController
             respond(['success' => false, 'message' => 'Invalid email address.'], 422);
         }
 
-        $allowedStaffRoles = [3, 4, 5, 6]; // manager, agronomist, worker, accountant
+        $allowedStaffRoles = [3, 4, 5, 6, 7]; // manager, agronomist, worker, accountant, veterinarian
         if (!in_array($roleId, $allowedStaffRoles, true)) {
-            respond(['success' => false, 'message' => 'Invalid role assigned. Staff roles can be Manager, Agronomist, Worker, or Accountant.'], 422);
+            respond(['success' => false, 'message' => 'Invalid role assigned. Staff roles can be Manager, Agronomist, Worker, Accountant, or Veterinarian.'], 422);
         }
 
         $existingUser = $this->userModel->findByEmail($email);
@@ -172,9 +172,29 @@ class FarmMemberController
 
         $this->audit->log('farm.member_added', (int) $user['sub'], 'farm_members', $memberId);
 
+        // If in invite mode, automatically send the invitation email to the member
+        if ($mode === 'invite' && $inviteToken !== null) {
+            try {
+                require_once __DIR__ . '/../notifications/MailerService.php';
+                $mailer = new MailerService();
+
+                $farmStmt = $this->pdo->prepare("SELECT name FROM farms WHERE id = :id");
+                $farmStmt->execute([':id' => $farmId]);
+                $farmName = (string) ($farmStmt->fetchColumn() ?: 'Farm Team');
+
+                $roleStmt = $this->pdo->prepare("SELECT name FROM roles WHERE id = :id");
+                $roleStmt->execute([':id' => $roleId]);
+                $roleName = (string) ($roleStmt->fetchColumn() ?: 'Worker');
+
+                $mailer->sendTeamInvitation($email, $name, $farmName, $roleName, $inviteToken);
+            } catch (\Throwable $e) {
+                error_log("[FarmMemberController] Failed to send invite email: " . $e->getMessage());
+            }
+        }
+
         respond([
             'success'     => true,
-            'message'     => $mode === 'invite' ? 'Member invited successfully.' : 'Staff account created successfully.',
+            'message'     => $mode === 'invite' ? 'Member invited successfully! An invitation email has also been sent.' : 'Staff account created successfully.',
             'id'          => $memberId,
             'user_id'     => $userId,
             'status'      => $status,
@@ -203,7 +223,7 @@ class FarmMemberController
             $params[':status'] = $status;
         }
 
-        if ($roleId !== null && in_array($roleId, [3, 4, 5, 6], true)) {
+        if ($roleId !== null && in_array($roleId, [3, 4, 5, 6, 7], true)) {
             $updates[] = 'role_id = :role_id';
             $params[':role_id'] = $roleId;
         }

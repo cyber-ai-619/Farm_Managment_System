@@ -28,7 +28,7 @@ function Suppliers() {
   const [supplierForm, setSupplierForm] = useState({
     farm_id: "",
     name: "",
-    category: "Fertilizer & Chemicals",
+    category: "fertilizers",
     contact_person: "",
     phone: "",
     email: "",
@@ -192,7 +192,7 @@ function Suppliers() {
     e.preventDefault();
     try {
       setSubmitting(true);
-      await supplierService.createQuotation(quoteForm.supplier_id, quoteForm);
+      await supplierService.createQuotation(quoteForm.supplier_id, { ...quoteForm, farm_id: selectedFarmId });
       setIsQuoteModalOpen(false);
       await loadQuotes(quoteForm.supplier_id);
     } catch (err) {
@@ -463,7 +463,7 @@ function Suppliers() {
                             ${Number(q.quoted_price).toFixed(2)} {q.unit ? `/ ${q.unit}` : ""}
                           </td>
                           <td style={{ padding: "12px 16px" }}>{q.valid_until || "Ongoing"}</td>
-                          <td style={{ padding: "12px 16px", color: "#666" }}>{q.terms || "—"}</td>
+                          <td style={{ padding: "12px 16px", color: "#666" }}>{q.notes || q.terms || "Standard"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -497,12 +497,17 @@ function Suppliers() {
                 onChange={(e) => setSupplierForm({ ...supplierForm, category: e.target.value })}
                 style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC" }}
               >
-                <option value="Fertilizer & Chemicals">Fertilizer & Chemicals</option>
-                <option value="Seeds & Seedlings">Seeds & Seedlings</option>
-                <option value="Machinery & Tools">Machinery & Tools</option>
-                <option value="Irrigation Systems">Irrigation Systems</option>
-                <option value="Packaging Supplies">Packaging Supplies</option>
-                <option value="Animal Feed & Vet">Animal Feed & Vet</option>
+                <option value="fertilizers">Fertilizer & Chemicals</option>
+                <option value="seeds">Seeds & Seedlings</option>
+                <option value="chemicals">Agro-Chemicals</option>
+                <option value="machinery">Machinery & Equipment</option>
+                <option value="tools">Irrigation & Tools</option>
+                <option value="packaging">Packaging Supplies</option>
+                <option value="feed">Animal Feed</option>
+                <option value="veterinary">Veterinary Supplies</option>
+                <option value="fuel">Fuel & Energy</option>
+                <option value="general">General</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div>

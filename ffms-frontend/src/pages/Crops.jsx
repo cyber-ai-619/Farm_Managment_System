@@ -28,15 +28,18 @@ function Crops() {
   const [cropForm, setCropForm] = useState({
     name: "",
     scientific_name: "",
-    category: "Grain",
+    category: "cereal",
     growth_cycle_days: 90,
     ideal_season: "Spring",
   });
 
   const [varietyForm, setVarietyForm] = useState({
+    variety_name: "",
     name: "",
     days_to_maturity: 90,
+    expected_yield_t_ha: 4.5,
     yield_potential_kg_ha: 4500,
+    notes: "",
     disease_resistance: "",
   });
 
@@ -135,11 +138,16 @@ function Crops() {
 
   const handleSaveVariety = async (e) => {
     e.preventDefault();
-    if (!varietyForm.name.trim() || !selectedCrop) return;
+    const vName = (varietyForm.variety_name || varietyForm.name || "").trim();
+    if (!vName || !selectedCrop) return;
 
     try {
       setSubmitting(true);
-      await cropService.createVariety(selectedCrop.id, varietyForm);
+      await cropService.createVariety(selectedCrop.id, {
+        ...varietyForm,
+        variety_name: vName,
+        name: vName,
+      });
       setIsVarietyModalOpen(false);
       await fetchCropDetails(selectedCrop.id);
     } catch (err) {
@@ -239,7 +247,7 @@ function Crops() {
                     <h4 style={{ margin: 0, color: "var(--color-forest)" }}>{c.name}</h4>
                     <p style={{ margin: "4px 0 0", fontSize: "0.85rem", fontStyle: "italic" }}>{c.scientific_name || "Cultivated crop"}</p>
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "0.8rem", color: "var(--color-charcoal-60)" }}>
-                      <span>Category: <strong>{c.category || "Grain"}</strong></span>
+                      <span>Category: <strong>{c.category || "cereal"}</strong></span>
                       <span>⏱️ {c.growth_cycle_days || 90}d</span>
                     </div>
                   </div>
@@ -315,14 +323,18 @@ function Crops() {
                         <p>No varieties registered yet for this crop.</p>
                       </div>
                     ) : (
-                      varieties.map((v) => (
-                        <div key={v.id} className="content-card">
-                          <h4 style={{ margin: "0 0 6px" }}>{v.name}</h4>
-                          <p style={{ fontSize: "0.85rem" }}>Maturity: <strong>{v.days_to_maturity || 90} days</strong></p>
-                          <p style={{ fontSize: "0.85rem" }}>Yield Est: <strong>{v.yield_potential_kg_ha ? `${v.yield_potential_kg_ha} kg/ha` : "N/A"}</strong></p>
-                          {v.disease_resistance && <p style={{ fontSize: "0.8rem", color: "var(--color-farm-green)" }}>🛡️ {v.disease_resistance}</p>}
-                        </div>
-                      ))
+                      varieties.map((v) => {
+                        const yieldKgHa = v.yield_potential_kg_ha ?? (v.expected_yield_t_ha ? v.expected_yield_t_ha * 1000 : null);
+                        const notesOrResistance = v.disease_resistance || v.notes;
+                        return (
+                          <div key={v.id} className="content-card">
+                            <h4 style={{ margin: "0 0 6px" }}>{v.variety_name || v.name}</h4>
+                            <p style={{ fontSize: "0.85rem" }}>Maturity: <strong>{v.days_to_maturity || 90} days</strong></p>
+                            <p style={{ fontSize: "0.85rem" }}>Yield Est: <strong>{yieldKgHa ? `${yieldKgHa} kg/ha` : "N/A"}</strong></p>
+                            {notesOrResistance && <p style={{ fontSize: "0.8rem", color: "var(--color-farm-green)" }}>🛡️ {notesOrResistance}</p>}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 )}
@@ -391,7 +403,7 @@ function Crops() {
                           <div key={f.id} className="content-card">
                             <h4 style={{ margin: "0 0 4px" }}>{f.fertilizer_name || f.fertilizer_type}</h4>
                             <p style={{ fontSize: "0.85rem", margin: 0 }}>
-                              Amount: <strong>{f.quantity_kg} kg</strong> &bull; Date: <strong>{f.application_date}</strong> &bull; Method: <strong>{f.application_method || "Broadcast"}</strong>
+                              Amount: <strong>{f.quantity_kg} kg</strong> &bull; Date: <strong>{f.application_date}</strong> &bull; Method: <strong>{f.application_method || f.notes || "Broadcast"}</strong>
                             </p>
                           </div>
                         ))
@@ -435,12 +447,14 @@ function Crops() {
                 onChange={(e) => setCropForm({ ...cropForm, category: e.target.value })}
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
-                <option value="Grain">Grain</option>
-                <option value="Vegetable">Vegetable</option>
-                <option value="Fruit">Fruit</option>
-                <option value="Legume">Legume</option>
-                <option value="Tuber">Tuber</option>
-                <option value="Cash Crop">Cash Crop</option>
+                <option value="cereal">Cereal / Grain</option>
+                <option value="legume">Legume</option>
+                <option value="vegetable">Vegetable</option>
+                <option value="fruit">Fruit</option>
+                <option value="root">Root / Tuber</option>
+                <option value="oilseed">Oilseed</option>
+                <option value="fodder">Fodder</option>
+                <option value="other">Other</option>
               </select>
             </div>
             <div className="form-field">
@@ -467,8 +481,8 @@ function Crops() {
             <input
               type="text"
               required
-              value={varietyForm.name}
-              onChange={(e) => setVarietyForm({ ...varietyForm, name: e.target.value })}
+              value={varietyForm.variety_name || varietyForm.name}
+              onChange={(e) => setVarietyForm({ ...varietyForm, variety_name: e.target.value, name: e.target.value })}
               placeholder="e.g. Hybrid SC-719"
             />
           </div>
@@ -486,7 +500,13 @@ function Crops() {
               <input
                 type="number"
                 value={varietyForm.yield_potential_kg_ha}
-                onChange={(e) => setVarietyForm({ ...varietyForm, yield_potential_kg_ha: e.target.value })}
+                onChange={(e) =>
+                  setVarietyForm({
+                    ...varietyForm,
+                    yield_potential_kg_ha: e.target.value,
+                    expected_yield_t_ha: e.target.value !== "" ? Number(e.target.value) / 1000 : "",
+                  })
+                }
               />
             </div>
           </div>
@@ -494,8 +514,8 @@ function Crops() {
             <label>Disease / Drought Resistance</label>
             <input
               type="text"
-              value={varietyForm.disease_resistance}
-              onChange={(e) => setVarietyForm({ ...varietyForm, disease_resistance: e.target.value })}
+              value={varietyForm.disease_resistance || varietyForm.notes}
+              onChange={(e) => setVarietyForm({ ...varietyForm, disease_resistance: e.target.value, notes: e.target.value })}
               placeholder="e.g. High drought tolerance, rust resistant"
             />
           </div>
@@ -517,7 +537,7 @@ function Crops() {
               required
             >
               {fields.map((f) => (
-                <option key={f.id} value={f.id}>{f.name} ({f.size_ha} ha)</option>
+                <option key={f.id} value={f.id}>{f.name} ({f.area_ha ?? f.size_ha} ha)</option>
               ))}
             </select>
           </div>

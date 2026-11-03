@@ -24,7 +24,7 @@ class HarvestController
     public function index(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $records = $this->model->findByFarm($farmId);
         respond(['success' => true, 'count' => count($records), 'data' => $records]);
     }
@@ -43,6 +43,7 @@ class HarvestController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['farm_id']) || empty($body['field_id']) || empty($body['crop_id']) || !isset($body['quantity_kg'])) {
             respond(['success' => false, 'message' => 'farm_id, field_id, crop_id, and quantity_kg are required.'], 422);
@@ -58,6 +59,7 @@ class HarvestController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (!isset($body['quantity_kg'])) {
             respond(['success' => false, 'message' => 'quantity_kg is required.'], 422);
@@ -81,7 +83,7 @@ class HarvestController
     public function yieldReport(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $report = $this->model->getYieldReport($farmId);
 
         respond(['success' => true, 'farm_id' => $farmId, 'yield_report' => $report]);

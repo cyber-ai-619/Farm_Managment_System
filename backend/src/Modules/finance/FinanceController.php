@@ -29,7 +29,7 @@ class FinanceController
     public function indexIncome(): void
     {
         requireAuth();
-        $farmId    = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId    = resolveFarmId($_GET['farm_id'] ?? null);
         $category  = $_GET['category'] ?? null;
         $startDate = $_GET['start_date'] ?? null;
         $endDate   = $_GET['end_date'] ?? null;
@@ -47,7 +47,7 @@ class FinanceController
             respond(['success' => false, 'message' => 'amount must be greater than zero.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $id = $this->financeModel->createIncome($farmId, (int) $user['sub'], $body);
         $this->audit->log('finance.income_recorded', (int) $user['sub'], 'income_records', $id);
 
@@ -61,7 +61,7 @@ class FinanceController
     public function indexExpenses(): void
     {
         requireAuth();
-        $farmId    = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId    = resolveFarmId($_GET['farm_id'] ?? null);
         $category  = $_GET['category'] ?? null;
         $startDate = $_GET['start_date'] ?? null;
         $endDate   = $_GET['end_date'] ?? null;
@@ -79,7 +79,7 @@ class FinanceController
             respond(['success' => false, 'message' => 'category and positive amount are required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $id = $this->financeModel->createExpense($farmId, (int) $user['sub'], $body);
         $this->audit->log('finance.expense_recorded', (int) $user['sub'], 'expense_records', $id);
 
@@ -93,7 +93,7 @@ class FinanceController
     public function profitLoss(): void
     {
         requireAuth();
-        $farmId    = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId    = resolveFarmId($_GET['farm_id'] ?? null);
         $startDate = $_GET['start_date'] ?? null;
         $endDate   = $_GET['end_date'] ?? null;
 
@@ -108,7 +108,7 @@ class FinanceController
     public function indexLoans(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $loans  = $this->financeModel->findLoans($farmId);
         respond(['success' => true, 'count' => count($loans), 'data' => $loans]);
     }
@@ -122,7 +122,7 @@ class FinanceController
             respond(['success' => false, 'message' => 'lender_name and principal_amount are required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $id = $this->financeModel->createLoan($farmId, (int) $user['sub'], $body);
         $this->audit->log('loan.created', (int) $user['sub'], 'loans', $id);
 
@@ -152,7 +152,7 @@ class FinanceController
     public function indexBudgets(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $year   = isset($_GET['fiscal_year']) ? (int) $_GET['fiscal_year'] : null;
 
         $budgets = $this->financeModel->findBudgets($farmId, $year);
@@ -168,7 +168,7 @@ class FinanceController
             respond(['success' => false, 'message' => 'category and budgeted_amount are required.'], 422);
         }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $id = $this->financeModel->createBudget($farmId, (int) $user['sub'], $body);
         $this->audit->log('budget.created', (int) $user['sub'], 'budgets', $id);
 

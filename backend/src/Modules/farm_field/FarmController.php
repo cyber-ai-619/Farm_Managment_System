@@ -50,9 +50,9 @@ class FarmController
             'owner_id'      => $ownerId,
             'name'          => trim($body['name']),
             'location'      => $body['location']      ?? null,
-            'latitude'      => $body['latitude']      ?? null,
-            'longitude'     => $body['longitude']     ?? null,
-            'total_area_ha' => $body['total_area_ha'] ?? null,
+            'latitude'      => ($body['latitude'] ?? '') !== '' ? $body['latitude'] : null,
+            'longitude'     => ($body['longitude'] ?? '') !== '' ? $body['longitude'] : null,
+            'total_area_ha' => ($body['total_area_ha'] ?? '') !== '' ? $body['total_area_ha'] : null,
             'description'   => $body['description']   ?? null,
         ]);
 
@@ -73,8 +73,8 @@ class FarmController
             respond(['success' => false, 'message' => 'Farm not found.'], 404);
         }
 
-        // Non-admins must own the farm
-        if ($user['role'] !== 'admin' && (int) $farm['owner_id'] !== (int) $user['sub']) {
+        // Non-admins must have access to the farm
+        if (!$this->model->hasAccess($id, (int) $user['sub'], (string) ($user['role'] ?? ''))) {
             respond(['success' => false, 'message' => 'Forbidden.'], 403);
         }
 
@@ -104,12 +104,16 @@ class FarmController
             respond(['success' => false, 'message' => 'Farm name is required.'], 422);
         }
 
+        $latitude    = array_key_exists('latitude', $body) ? ($body['latitude'] !== '' ? $body['latitude'] : null) : $farm['latitude'];
+        $longitude   = array_key_exists('longitude', $body) ? ($body['longitude'] !== '' ? $body['longitude'] : null) : $farm['longitude'];
+        $totalAreaHa = array_key_exists('total_area_ha', $body) ? ($body['total_area_ha'] !== '' ? $body['total_area_ha'] : null) : $farm['total_area_ha'];
+
         $this->model->update($id, [
             'name'          => trim($body['name']),
             'location'      => $body['location']      ?? $farm['location'],
-            'latitude'      => $body['latitude']      ?? $farm['latitude'],
-            'longitude'     => $body['longitude']     ?? $farm['longitude'],
-            'total_area_ha' => $body['total_area_ha'] ?? $farm['total_area_ha'],
+            'latitude'      => $latitude,
+            'longitude'     => $longitude,
+            'total_area_ha' => $totalAreaHa,
             'description'   => $body['description']   ?? $farm['description'],
             'is_active'     => $body['is_active']     ?? $farm['is_active'],
         ]);

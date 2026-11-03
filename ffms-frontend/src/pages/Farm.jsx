@@ -64,9 +64,11 @@ function Farm() {
 
   const [fieldForm, setFieldForm] = useState({
     name: "",
+    area_ha: "",
     size_ha: "",
-    soil_type: "Loam",
-    current_condition: "Good",
+    soil_type: "loam",
+    soil_condition: "good",
+    current_condition: "good",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -154,7 +156,12 @@ function Farm() {
 
     try {
       setSubmitting(true);
-      const farmData = { ...farmForm, latitude, longitude };
+      const farmData = {
+        ...farmForm,
+        latitude,
+        longitude,
+        total_area_ha: farmForm.total_area_ha === "" ? null : Number(farmForm.total_area_ha),
+      };
       let savedFarm;
       if (editingFarm) {
         savedFarm = await farmService.updateFarm(editingFarm.id, farmData);
@@ -185,19 +192,25 @@ function Farm() {
   const handleOpenFieldModal = (field = null) => {
     if (field) {
       setEditingField(field);
+      const areaVal = field.area_ha ?? field.size_ha ?? "";
+      const condVal = (field.soil_condition || field.current_condition || "good").toLowerCase();
       setFieldForm({
         name: field.name || "",
-        size_ha: field.size_ha || "",
-        soil_type: field.soil_type || "Loam",
-        current_condition: field.current_condition || "Good",
+        area_ha: areaVal,
+        size_ha: areaVal,
+        soil_type: (field.soil_type || "loam").toLowerCase(),
+        soil_condition: condVal,
+        current_condition: condVal,
       });
     } else {
       setEditingField(null);
       setFieldForm({
         name: "",
+        area_ha: "",
         size_ha: "",
-        soil_type: "Loam",
-        current_condition: "Good",
+        soil_type: "loam",
+        soil_condition: "good",
+        current_condition: "good",
       });
     }
     setIsFieldModalOpen(true);
@@ -209,10 +222,19 @@ function Farm() {
 
     try {
       setSubmitting(true);
+      const areaHa = fieldForm.area_ha !== "" ? fieldForm.area_ha : fieldForm.size_ha;
+      const cond = fieldForm.soil_condition || fieldForm.current_condition || "good";
+      const payload = {
+        ...fieldForm,
+        area_ha: areaHa === "" ? null : Number(areaHa),
+        size_ha: areaHa === "" ? null : Number(areaHa),
+        soil_condition: cond,
+        current_condition: cond,
+      };
       if (editingField) {
-        await farmService.updateField(editingField.id, fieldForm);
+        await farmService.updateField(editingField.id, payload);
       } else {
-        await farmService.createField(selectedFarm.id, fieldForm);
+        await farmService.createField(selectedFarm.id, payload);
       }
       setIsFieldModalOpen(false);
       await fetchFields(selectedFarm.id);
@@ -412,9 +434,9 @@ function Farm() {
                             </div>
                           )}
                         </div>
-                        <p style={{ marginTop: "6px" }}>Size: <strong>{field.size_ha} ha</strong></p>
-                        <p style={{ marginTop: "2px" }}>Soil Type: <strong>{field.soil_type || "Loam"}</strong></p>
-                        <p style={{ marginTop: "2px" }}>Condition: <span style={{ color: "var(--color-farm-green)", fontWeight: 600 }}>{field.current_condition || "Good"}</span></p>
+                        <p style={{ marginTop: "6px" }}>Size: <strong>{field.area_ha ?? field.size_ha} ha</strong></p>
+                        <p style={{ marginTop: "2px" }}>Soil Type: <strong>{field.soil_type || "loam"}</strong></p>
+                        <p style={{ marginTop: "2px" }}>Condition: <span style={{ color: "var(--color-farm-green)", fontWeight: 600 }}>{field.soil_condition || field.current_condition || "good"}</span></p>
                       </div>
                     ))}
                   </div>
@@ -537,8 +559,8 @@ function Farm() {
               type="number"
               step="0.01"
               required
-              value={fieldForm.size_ha}
-              onChange={(e) => setFieldForm({ ...fieldForm, size_ha: e.target.value })}
+              value={fieldForm.area_ha ?? fieldForm.size_ha}
+              onChange={(e) => setFieldForm({ ...fieldForm, area_ha: e.target.value, size_ha: e.target.value })}
               placeholder="12.5"
             />
           </div>
@@ -551,28 +573,28 @@ function Farm() {
                 onChange={(e) => setFieldForm({ ...fieldForm, soil_type: e.target.value })}
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
-                <option value="Loam">Loam</option>
-                <option value="Clay">Clay</option>
-                <option value="Sandy">Sandy</option>
-                <option value="Silt">Silt</option>
-                <option value="Peat">Peat</option>
-                <option value="Chalky">Chalky</option>
+                <option value="loam">Loam</option>
+                <option value="clay">Clay</option>
+                <option value="sandy">Sandy</option>
+                <option value="silt">Silt</option>
+                <option value="peat">Peat</option>
+                <option value="chalk">Chalk</option>
+                <option value="clay_loam">Clay Loam</option>
+                <option value="sandy_loam">Sandy Loam</option>
               </select>
             </div>
 
             <div className="form-field">
               <label>Current Condition</label>
               <select
-                value={fieldForm.current_condition}
-                onChange={(e) => setFieldForm({ ...fieldForm, current_condition: e.target.value })}
+                value={fieldForm.soil_condition || fieldForm.current_condition}
+                onChange={(e) => setFieldForm({ ...fieldForm, soil_condition: e.target.value, current_condition: e.target.value })}
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
-                <option value="Good">Good</option>
-                <option value="Fallow">Fallow</option>
-                <option value="Tilled">Tilled</option>
-                <option value="Planted">Planted</option>
-                <option value="Harvested">Harvested</option>
-                <option value="Needs Rest">Needs Rest</option>
+                <option value="excellent">Excellent</option>
+                <option value="good">Good</option>
+                <option value="fair">Fair</option>
+                <option value="poor">Poor</option>
               </select>
             </div>
           </div>

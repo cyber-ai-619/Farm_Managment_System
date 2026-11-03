@@ -5,11 +5,17 @@ declare(strict_types=1);
 require_once __DIR__ . '/JwtHelper.php';
 require_once __DIR__ . '/UserModel.php';
 require_once __DIR__ . '/AuditLogger.php';
+require_once __DIR__ . '/../notifications/MailerService.php';
 
 /**
  * AuthController
  *
  * Handles all /api/auth/* routes:
+ *   POST /api/auth/register-request
+ *   GET  /api/auth/verify-registration
+ *   POST /api/auth/complete-registration
+ *   POST /api/auth/forgot-password
+ *   POST /api/auth/reset-password
  *   POST /api/auth/register
  *   POST /api/auth/login
  *   GET  /api/auth/me
@@ -18,15 +24,374 @@ require_once __DIR__ . '/AuditLogger.php';
  */
 class AuthController
 {
-    private PDO         $pdo;
-    private UserModel   $users;
-    private AuditLogger $audit;
+    private PDO           $pdo;
+    private UserModel     $users;
+    private AuditLogger   $audit;
+    private MailerService $mailer;
 
     public function __construct(PDO $pdo)
     {
-        $this->pdo   = $pdo;
-        $this->users = new UserModel($pdo);
-        $this->audit = new AuditLogger($pdo);
+        $this->pdo    = $pdo;
+        $this->users  = new UserModel($pdo);
+        $this->audit  = new AuditLogger($pdo);
+        $this->mailer = new MailerService();
+        $this->ensureSchema();
+    }
+
+    private function ensureSchema(): void
+    {
+        try {
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS pending_registrations (
+                    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    name       VARCHAR(150) NOT NULL,
+                    email      VARCHAR(255) NOT NULL,
+                    farm_name  VARCHAR(150) NOT NULL,
+                    token_hash VARCHAR(64)  NOT NULL UNIQUE,
+                    expires_at TIMESTAMP    NOT NULL,
+                    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_pending_reg_email (email),
+                    INDEX idx_pending_reg_token (token_hash),
+                    INDEX idx_pending_reg_expires (expires_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS password_resets (
+                    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    user_id    INT UNSIGNED NOT NULL,
+                    email      VARCHAR(255) NOT NULL,
+                    token_hash VARCHAR(64)  NOT NULL UNIQUE,
+                    expires_at TIMESTAMP    NOT NULL,
+                    used_at    TIMESTAMP    NULL,
+                    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_pwd_reset_token (token_hash),
+                    INDEX idx_pwd_reset_user (user_id),
+                    INDEX idx_pwd_reset_expires (expires_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+        } catch (\Throwable) {
+            // Ignore if restricted
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // POST /api/auth/register-request (24h temporal token email)
+    // ---------------------------------------------------------------
+
+    /**
+     * Step 1 of Owner Registration: Accepts name, email, farm_name,
+     * stores an unverified registration, and emails a 24-hour verification link.
+     */
+    public function requestRegistration(): void
+    {
+        $body     = $this->jsonBody();
+        $name     = trim((string) ($body['name'] ?? ''));
+        $email    = strtolower(trim((string) ($body['email'] ?? '')));
+        $farmName = trim((string) ($body['farm_name'] ?? ''));
+
+        if ($name === '' || $email === '') {
+            respond(['success' => false, 'message' => 'Name and email are required.'], 422);
+        }
+
+        if (strlen($name) > 150) {
+            respond(['success' => false, 'message' => 'Name cannot exceed 150 characters.'], 422);
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 255) {
+            respond(['success' => false, 'message' => 'Please enter a valid email address.'], 422);
+        }
+
+        if ($this->users->emailExists($email)) {
+            respond(['success' => false, 'message' => 'An account with that email already exists. Please log in or reset your password.'], 409);
+        }
+
+        $farmName = $farmName !== '' ? $farmName : ($name . "'s Farm");
+
+        // Generate secure 24-hour verification token
+        $rawToken  = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $rawToken);
+        $expiresAt = date('Y-m-d H:i:s', time() + 86400); // 24 hours
+
+        // Clean out older pending registrations for this email
+        $del = $this->pdo->prepare("DELETE FROM pending_registrations WHERE email = :email");
+        $del->execute([':email' => $email]);
+
+        $ins = $this->pdo->prepare("
+            INSERT INTO pending_registrations (name, email, farm_name, token_hash, expires_at)
+            VALUES (:name, :email, :farm_name, :token_hash, :expires_at)
+        ");
+        $ins->execute([
+            ':name'       => $name,
+            ':email'      => $email,
+            ':farm_name'  => $farmName,
+            ':token_hash' => $tokenHash,
+            ':expires_at' => $expiresAt,
+        ]);
+
+        $this->mailer->sendRegistrationVerification($email, $name, $rawToken);
+
+        respond([
+            'success' => true,
+            'message' => 'Verification link sent! Please check your email to activate your account and choose your password.',
+        ]);
+    }
+
+    // ---------------------------------------------------------------
+    // GET /api/auth/verify-registration
+    // ---------------------------------------------------------------
+
+    /**
+     * Validates that a 24h registration token is unexpired and returns pending metadata.
+     */
+    public function verifyRegistrationToken(): void
+    {
+        $rawToken = trim((string) ($_GET['token'] ?? ''));
+        if ($rawToken === '') {
+            respond(['success' => false, 'message' => 'Verification token is required.'], 422);
+        }
+
+        $tokenHash = hash('sha256', $rawToken);
+        $stmt = $this->pdo->prepare("
+            SELECT id, name, email, farm_name, expires_at
+            FROM pending_registrations
+            WHERE token_hash = :hash
+            LIMIT 1
+        ");
+        $stmt->execute([':hash' => $tokenHash]);
+        $pending = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$pending) {
+            respond(['success' => false, 'message' => 'Invalid verification link. Please register again.'], 404);
+        }
+
+        if (strtotime($pending['expires_at']) < time()) {
+            respond(['success' => false, 'message' => 'This verification link has expired (24-hour limit). Please register again.'], 410);
+        }
+
+        respond([
+            'success' => true,
+            'data'    => [
+                'token'     => $rawToken,
+                'name'      => $pending['name'],
+                'email'     => $pending['email'],
+                'farm_name' => $pending['farm_name'],
+            ],
+        ]);
+    }
+
+    // ---------------------------------------------------------------
+    // POST /api/auth/complete-registration
+    // ---------------------------------------------------------------
+
+    /**
+     * Step 2 of Registration: User clicks link, submits their chosen password,
+     * and their user and farm workspace are provisioned and activated.
+     */
+    public function completeRegistration(): void
+    {
+        $body     = $this->jsonBody();
+        $rawToken = trim((string) ($body['token'] ?? ''));
+        $password = (string) ($body['password'] ?? '');
+        $name     = trim((string) ($body['name'] ?? ''));
+        $farmName = trim((string) ($body['farm_name'] ?? ''));
+
+        if ($rawToken === '' || $password === '') {
+            respond(['success' => false, 'message' => 'Token and password are required.'], 422);
+        }
+
+        if (strlen($password) < 8 || strlen($password) > 72) {
+            respond(['success' => false, 'message' => 'Password must be between 8 and 72 characters.'], 422);
+        }
+
+        $tokenHash = hash('sha256', $rawToken);
+        $stmt = $this->pdo->prepare("
+            SELECT id, name, email, farm_name, expires_at
+            FROM pending_registrations
+            WHERE token_hash = :hash
+            LIMIT 1
+        ");
+        $stmt->execute([':hash' => $tokenHash]);
+        $pending = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$pending) {
+            respond(['success' => false, 'message' => 'Invalid or already consumed verification link.'], 404);
+        }
+
+        if (strtotime($pending['expires_at']) < time()) {
+            respond(['success' => false, 'message' => 'This verification link has expired (24-hour limit). Please register again.'], 410);
+        }
+
+        $email = $pending['email'];
+        if ($this->users->emailExists($email)) {
+            respond(['success' => false, 'message' => 'An account with that email has already been activated. Please log in.'], 409);
+        }
+
+        $name = $name !== '' ? $name : $pending['name'];
+        $farmName = $farmName !== '' ? $farmName : $pending['farm_name'];
+
+        $roleId = 2; // farm_owner
+        $userId = $this->users->create($name, $email, $password, $roleId);
+        $user   = $this->users->findById($userId);
+
+        // Auto-create initial farm workspace
+        require_once __DIR__ . '/../farm_field/FarmModel.php';
+        $farmModel = new FarmModel($this->pdo);
+        $farmId = $farmModel->create([
+            'owner_id'    => $userId,
+            'name'        => $farmName,
+            'description' => 'Primary farm created upon owner registration',
+        ]);
+
+        // Auto-add to farm_members as active owner
+        try {
+            $fmStmt = $this->pdo->prepare("
+                INSERT INTO farm_members (farm_id, user_id, role_id, status)
+                VALUES (:farm_id, :user_id, :role_id, 'active')
+            ");
+            $fmStmt->execute([
+                ':farm_id' => $farmId,
+                ':user_id' => $userId,
+                ':role_id' => $roleId,
+            ]);
+        } catch (\Throwable) {
+            // Non-critical if table absent or auto-synced
+        }
+
+        // Remove consumed pending registration record
+        $del = $this->pdo->prepare("DELETE FROM pending_registrations WHERE id = :id");
+        $del->execute([':id' => $pending['id']]);
+
+        $token = JwtHelper::generate([
+            'sub'       => $userId,
+            'email'     => $email,
+            'role'      => $user['role_name'],
+            'role_id'   => (int) $user['role_id'],
+            'farm_id'   => $farmId,
+        ]);
+
+        $this->audit->log('user.registered_verified', $userId, 'users', $userId);
+
+        respond([
+            'success' => true,
+            'message' => 'Account activated successfully! Welcome to your farm workspace.',
+            'token'   => $token,
+            'user'    => $this->publicUser($user),
+            'farm_id' => $farmId,
+        ], 201);
+    }
+
+    // ---------------------------------------------------------------
+    // POST /api/auth/forgot-password (10m temporal token email)
+    // ---------------------------------------------------------------
+
+    /**
+     * Issues a 10-minute password reset link to the user's email address.
+     */
+    public function forgotPassword(): void
+    {
+        $body  = $this->jsonBody();
+        $email = strtolower(trim((string) ($body['email'] ?? '')));
+
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            respond(['success' => false, 'message' => 'Please provide a valid email address.'], 422);
+        }
+
+        $user = $this->users->findByEmail($email);
+
+        // Anti-enumeration: Return generic success response if user does not exist
+        if ($user === null) {
+            respond([
+                'success' => true,
+                'message' => 'If an account exists with that email address, a password reset link has been dispatched. Please check your inbox.',
+            ]);
+        }
+
+        $userId = (int) $user['id'];
+        $rawToken  = bin2hex(random_bytes(32));
+        $tokenHash = hash('sha256', $rawToken);
+        // Expiration: strictly 10 minutes (600 seconds) as agreed
+        $expiresAt = date('Y-m-d H:i:s', time() + 600);
+
+        // Invalidate older unused reset tokens for this user
+        $del = $this->pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE user_id = :user_id AND used_at IS NULL");
+        $del->execute([':user_id' => $userId]);
+
+        $ins = $this->pdo->prepare("
+            INSERT INTO password_resets (user_id, email, token_hash, expires_at)
+            VALUES (:user_id, :email, :token_hash, :expires_at)
+        ");
+        $ins->execute([
+            ':user_id'    => $userId,
+            ':email'      => $email,
+            ':token_hash' => $tokenHash,
+            ':expires_at' => $expiresAt,
+        ]);
+
+        $this->mailer->sendPasswordReset($user['email'], $user['name'], $rawToken);
+        $this->audit->log('user.password_reset_requested', $userId, 'users', $userId);
+
+        respond([
+            'success' => true,
+            'message' => 'If an account exists with that email address, a password reset link has been dispatched. Please check your inbox.',
+        ]);
+    }
+
+    // ---------------------------------------------------------------
+    // POST /api/auth/reset-password
+    // ---------------------------------------------------------------
+
+    /**
+     * Verifies the 10-minute token and updates the user's password.
+     */
+    public function resetPassword(): void
+    {
+        $body     = $this->jsonBody();
+        $rawToken = trim((string) ($body['token'] ?? ''));
+        $password = (string) ($body['password'] ?? '');
+
+        if ($rawToken === '' || $password === '') {
+            respond(['success' => false, 'message' => 'Token and new password are required.'], 422);
+        }
+
+        if (strlen($password) < 8 || strlen($password) > 72) {
+            respond(['success' => false, 'message' => 'Password must be between 8 and 72 characters.'], 422);
+        }
+
+        $tokenHash = hash('sha256', $rawToken);
+        $stmt = $this->pdo->prepare("
+            SELECT id, user_id, email, expires_at, used_at
+            FROM password_resets
+            WHERE token_hash = :hash
+            LIMIT 1
+        ");
+        $stmt->execute([':hash' => $tokenHash]);
+        $resetRecord = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$resetRecord || $resetRecord['used_at'] !== null) {
+            respond(['success' => false, 'message' => 'This password reset link is invalid or has already been used.'], 400);
+        }
+
+        if (strtotime($resetRecord['expires_at']) < time()) {
+            respond(['success' => false, 'message' => 'This password reset link has expired (10-minute limit). Please request a new one.'], 400);
+        }
+
+        $userId = (int) $resetRecord['user_id'];
+        $hash   = password_hash($password, PASSWORD_BCRYPT);
+
+        // Update password in users table
+        $upUser = $this->pdo->prepare("UPDATE users SET password_hash = :hash WHERE id = :id");
+        $upUser->execute([':hash' => $hash, ':id' => $userId]);
+
+        // Invalidate token
+        $upToken = $this->pdo->prepare("UPDATE password_resets SET used_at = NOW() WHERE id = :id");
+        $upToken->execute([':id' => $resetRecord['id']]);
+
+        $this->audit->log('user.password_reset_completed', $userId, 'users', $userId);
+
+        respond([
+            'success' => true,
+            'message' => 'Password reset successfully! You can now log in with your new password.',
+        ]);
     }
 
     // ---------------------------------------------------------------
@@ -85,6 +450,19 @@ class AuthController
             'name'        => $farmName,
             'description' => 'Primary farm created upon owner registration',
         ]);
+
+        try {
+            $fmStmt = $this->pdo->prepare("
+                INSERT INTO farm_members (farm_id, user_id, role_id, status)
+                VALUES (:farm_id, :user_id, :role_id, 'active')
+            ");
+            $fmStmt->execute([
+                ':farm_id' => $farmId,
+                ':user_id' => $userId,
+                ':role_id' => $roleId,
+            ]);
+        } catch (\Throwable) {
+        }
 
         $token = JwtHelper::generate([
             'sub'       => $userId,

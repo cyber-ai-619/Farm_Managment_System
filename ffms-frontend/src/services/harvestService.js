@@ -34,7 +34,7 @@ export const harvestService = {
   async getSummary(farmId) {
     const query = farmId ? `?farm_id=${farmId}` : "";
     const res = await api.get(`/api/harvest/summary${query}`);
-    return res.data;
+    return res.yield_report || res.data || [];
   },
 
   async getByField(fieldId) {

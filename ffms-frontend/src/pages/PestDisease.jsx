@@ -24,16 +24,22 @@ function PestDisease() {
   const [pestForm, setPestForm] = useState({
     name: "Fall Armyworm",
     scientific_name: "Spodoptera frugiperda",
-    type: "Pest",
+    type: "pest",
+    symptoms_description: "Window pane damage on leaves, ragged holes in maize whorls",
     symptoms: "Window pane damage on leaves, ragged holes in maize whorls",
+    recommended_control: "Apply Emamectin benzoate or Neem oil spray",
     treatment_recommendation: "Apply Emamectin benzoate or Neem oil spray",
   });
 
   const [scoutingForm, setScoutingForm] = useState({
+    farm_id: "",
     field_id: "",
+    pest_disease_id: "",
     pest_id: "",
+    observation_date: new Date().toISOString().split("T")[0],
     scouting_date: new Date().toISOString().split("T")[0],
-    severity: "medium",
+    severity: "moderate",
+    affected_area_pct: 15,
     affected_area_percentage: 15,
     notes: "",
   });
@@ -56,10 +62,18 @@ function PestDisease() {
       setFarms(fData);
 
       if (pData.length > 0 && !scoutingForm.pest_id) {
-        setScoutingForm((prev) => ({ ...prev, pest_id: pData[0].id }));
+        setScoutingForm((prev) => ({
+          ...prev,
+          pest_id: pData[0].id,
+          pest_disease_id: pData[0].id,
+        }));
       }
 
       if (fData.length > 0) {
+        setScoutingForm((prev) => ({
+          ...prev,
+          farm_id: prev.farm_id || fData[0].id,
+        }));
         const fieldsData = await farmService.getFields(fData[0].id);
         setFields(fieldsData);
         if (fieldsData.length > 0 && !scoutingForm.field_id) {
@@ -95,7 +109,7 @@ function PestDisease() {
 
   const handleSaveScouting = async (e) => {
     e.preventDefault();
-    if (!scoutingForm.field_id || !scoutingForm.pest_id) return;
+    if (!scoutingForm.field_id || !(scoutingForm.pest_disease_id || scoutingForm.pest_id)) return;
 
     try {
       setSubmitting(true);
@@ -192,9 +206,9 @@ function PestDisease() {
                 scoutingLogs.map((s) => (
                   <div key={s.id} className="content-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <h4 style={{ margin: "0 0 4px" }}>🐛 {s.pest_name || `Pest #${s.pest_id}`}</h4>
+                      <h4 style={{ margin: "0 0 4px" }}>🐛 {s.pest_name || `Pest #${s.pest_disease_id ?? s.pest_id}`}</h4>
                       <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--color-charcoal-60)" }}>
-                        Field: <strong>{s.field_name || `Field #${s.field_id}`}</strong> &bull; Date: {s.scouting_date} &bull; Affected Area: <strong>{s.affected_area_percentage}%</strong>
+                        Field: <strong>{s.field_name || `Field #${s.field_id}`}</strong> &bull; Date: {s.observation_date || s.scouting_date} &bull; Affected Area: <strong>{s.affected_area_pct ?? s.affected_area_percentage}%</strong>
                       </p>
                       {s.notes && <p style={{ margin: "2px 0 0", fontSize: "0.8rem", fontStyle: "italic" }}>"{s.notes}"</p>}
                     </div>
@@ -204,12 +218,12 @@ function PestDisease() {
                         borderRadius: "12px",
                         fontSize: "0.75rem",
                         fontWeight: 700,
-                        backgroundColor: s.severity === "high" || s.severity === "critical" ? "#FFEBEE" : "#FFF3E0",
-                        color: s.severity === "high" || s.severity === "critical" ? "#C62828" : "#E65100",
+                        backgroundColor: ["high", "severe", "critical"].includes(s.severity) ? "#FFEBEE" : "#FFF3E0",
+                        color: ["high", "severe", "critical"].includes(s.severity) ? "#C62828" : "#E65100",
                         textTransform: "uppercase",
                       }}
                     >
-                      {s.severity || "Medium"} Severity
+                      {s.severity || "moderate"} Severity
                     </span>
                   </div>
                 ))
@@ -230,16 +244,16 @@ function PestDisease() {
                     <h4 style={{ margin: 0, color: "var(--color-forest)" }}>{p.name}</h4>
                     <p style={{ margin: "2px 0 0", fontSize: "0.85rem", fontStyle: "italic" }}>{p.scientific_name || "Species"}</p>
                     <p style={{ margin: "6px 0 0", fontSize: "0.85rem" }}>
-                      Type: <strong>{p.type || "Pest"}</strong>
+                      Type: <strong>{p.type || "pest"}</strong>
                     </p>
-                    {p.symptoms && (
+                    {(p.symptoms_description || p.symptoms) && (
                       <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--color-charcoal-60)" }}>
-                        <strong>Symptoms:</strong> {p.symptoms}
+                        <strong>Symptoms:</strong> {p.symptoms_description || p.symptoms}
                       </p>
                     )}
-                    {p.treatment_recommendation && (
+                    {(p.recommended_control || p.treatment_recommendation) && (
                       <p style={{ margin: "4px 0 0", fontSize: "0.8rem", color: "var(--color-farm-green)" }}>
-                        <strong>Recommended:</strong> {p.treatment_recommendation}
+                        <strong>Recommended:</strong> {p.recommended_control || p.treatment_recommendation}
                       </p>
                     )}
                   </div>
@@ -279,11 +293,14 @@ function PestDisease() {
                 onChange={(e) => setPestForm({ ...pestForm, type: e.target.value })}
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
-                <option value="Pest">Insect / Pest</option>
-                <option value="Fungal">Fungal Disease</option>
-                <option value="Bacterial">Bacterial Disease</option>
-                <option value="Viral">Viral Disease</option>
-                <option value="Weed">Invasive Weed</option>
+                <option value="pest">Insect / Pest</option>
+                <option value="fungal_disease">Fungal Disease</option>
+                <option value="bacterial_disease">Bacterial Disease</option>
+                <option value="viral_disease">Viral Disease</option>
+                <option value="weed">Invasive Weed</option>
+                <option value="nematode">Nematode</option>
+                <option value="deficiency">Nutrient Deficiency</option>
+                <option value="other">Other</option>
               </select>
             </div>
           </div>
@@ -291,8 +308,8 @@ function PestDisease() {
             <label>Symptoms Description</label>
             <textarea
               rows={2}
-              value={pestForm.symptoms}
-              onChange={(e) => setPestForm({ ...pestForm, symptoms: e.target.value })}
+              value={pestForm.symptoms_description ?? pestForm.symptoms}
+              onChange={(e) => setPestForm({ ...pestForm, symptoms_description: e.target.value, symptoms: e.target.value })}
               style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)", width: "100%", fontFamily: "inherit" }}
             />
           </div>
@@ -321,8 +338,8 @@ function PestDisease() {
           <div className="form-field">
             <label>Detected Pest / Disease *</label>
             <select
-              value={scoutingForm.pest_id}
-              onChange={(e) => setScoutingForm({ ...scoutingForm, pest_id: e.target.value })}
+              value={scoutingForm.pest_disease_id || scoutingForm.pest_id}
+              onChange={(e) => setScoutingForm({ ...scoutingForm, pest_disease_id: e.target.value, pest_id: e.target.value })}
               style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               required
             >
@@ -340,8 +357,8 @@ function PestDisease() {
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
                 <option value="low">Low (Trace)</option>
-                <option value="medium">Medium (Manageable)</option>
-                <option value="high">High (Threatening)</option>
+                <option value="moderate">Moderate (Manageable)</option>
+                <option value="severe">Severe (Threatening)</option>
                 <option value="critical">Critical (Outbreak)</option>
               </select>
             </div>
@@ -349,8 +366,8 @@ function PestDisease() {
               <label>Affected Area (%)</label>
               <input
                 type="number"
-                value={scoutingForm.affected_area_percentage}
-                onChange={(e) => setScoutingForm({ ...scoutingForm, affected_area_percentage: e.target.value })}
+                value={scoutingForm.affected_area_pct ?? scoutingForm.affected_area_percentage}
+                onChange={(e) => setScoutingForm({ ...scoutingForm, affected_area_pct: e.target.value, affected_area_percentage: e.target.value })}
               />
             </div>
           </div>

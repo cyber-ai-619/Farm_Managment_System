@@ -47,8 +47,34 @@ class HealthModel
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    private function resolveWorkerVetId(mixed $val): ?int
+    {
+        if ($val === '' || $val === null) {
+            return null;
+        }
+        $vetId = (int) $val;
+        if ($vetId <= 0) {
+            return null;
+        }
+        $stmt = $this->pdo->prepare('SELECT id FROM workers WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $vetId]);
+        return $stmt->fetchColumn() ? $vetId : null;
+    }
+
+    private function normalizeOutcome(mixed $val): string
+    {
+        $outcome = strtolower(trim((string) ($val ?? 'ongoing')));
+        if ($outcome === 'recovering') {
+            $outcome = 'ongoing';
+        }
+        $allowed = ['recovered', 'ongoing', 'deceased', 'referred'];
+        return in_array($outcome, $allowed, true) ? $outcome : 'ongoing';
+    }
+
     public function createVaccination(array $data): int
     {
+        $vetId = $this->resolveWorkerVetId($data['veterinarian_id'] ?? null);
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO vaccinations
                 (animal_id, administered_by, veterinarian_name, veterinarian_id,
@@ -65,19 +91,19 @@ class HealthModel
             ':animal_id'            => $data['animal_id'],
             ':administered_by'      => $data['administered_by'],
             ':veterinarian_name'    => $data['veterinarian_name']    ?? null,
-            ':veterinarian_id'      => !empty($data['veterinarian_id']) ? (int) $data['veterinarian_id'] : null,
+            ':veterinarian_id'      => $vetId,
             ':vaccine_name'         => $data['vaccine_name'],
             ':disease_target'       => $data['disease_target']       ?? null,
             ':dose_ml'              => !empty($data['dose_ml']) ? (float) $data['dose_ml'] : null,
             ':dosage'               => $data['dosage']               ?? (!empty($data['dose_ml']) ? $data['dose_ml'] . ' ml' : null),
             ':route'                => $data['route']                ?? 'intramuscular',
             ':vaccination_date'     => $data['vaccination_date']     ?? ($data['administered_date'] ?? date('Y-m-d')),
-            ':next_due_date'        => !empty($data['next_due_date']) ? $data['next_due_date'] : null,
-            ':batch_number'         => $data['batch_number']         ?? null,
-            ':withdrawal_days_meat' => isset($data['withdrawal_days_meat']) ? (int) $data['withdrawal_days_meat'] : 0,
-            ':withdrawal_days_milk' => isset($data['withdrawal_days_milk']) ? (int) $data['withdrawal_days_milk'] : 0,
+            ':next_due_date'        => ($data['next_due_date'] ?? '') !== '' ? $data['next_due_date'] : null,
+            ':batch_number'         => ($data['batch_number'] ?? '') !== '' ? $data['batch_number'] : null,
+            ':withdrawal_days_meat' => ($data['withdrawal_days_meat'] ?? '') !== '' ? (int) $data['withdrawal_days_meat'] : 0,
+            ':withdrawal_days_milk' => ($data['withdrawal_days_milk'] ?? '') !== '' ? (int) $data['withdrawal_days_milk'] : 0,
             ':manufacturer'         => $data['manufacturer']         ?? null,
-            ':cost'                 => isset($data['cost']) ? (float) $data['cost'] : 0.00,
+            ':cost'                 => ($data['cost'] ?? '') !== '' ? (float) $data['cost'] : 0.00,
             ':notes'                => $data['notes']                ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
@@ -139,6 +165,9 @@ class HealthModel
 
     public function createTreatment(array $data): int
     {
+        $vetId = $this->resolveWorkerVetId($data['veterinarian_id'] ?? null);
+        $outcome = $this->normalizeOutcome($data['outcome'] ?? 'ongoing');
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO treatments
                 (animal_id, administered_by, veterinarian_name, veterinarian_id,
@@ -153,18 +182,18 @@ class HealthModel
             ':animal_id'         => $data['animal_id'],
             ':administered_by'   => $data['administered_by'],
             ':veterinarian_name' => $data['veterinarian_name'] ?? null,
-            ':veterinarian_id'   => !empty($data['veterinarian_id']) ? (int) $data['veterinarian_id'] : null,
+            ':veterinarian_id'   => $vetId,
             ':diagnosis'         => $data['diagnosis']         ?? ($data['disease_diagnosed'] ?? 'General Veterinary Exam'),
             ':treatment_name'    => $data['treatment_name']    ?? ($data['procedure_name'] ?? ($data['medication'] ?? 'Medical Therapy')),
             ':medication'        => $data['medication']        ?? null,
             ':dose'              => $data['dose']              ?? ($data['dosage'] ?? null),
             ':route'             => $data['route']             ?? 'intramuscular',
             ':treatment_date'    => $data['treatment_date']    ?? date('Y-m-d'),
-            ':follow_up_date'    => !empty($data['follow_up_date']) ? $data['follow_up_date'] : null,
-            ':outcome'           => $data['outcome']           ?? 'ongoing',
-            ':withdrawal_days'   => isset($data['withdrawal_days']) ? (int) $data['withdrawal_days'] : 0,
+            ':follow_up_date'    => ($data['follow_up_date'] ?? '') !== '' ? $data['follow_up_date'] : null,
+            ':outcome'           => $outcome,
+            ':withdrawal_days'   => ($data['withdrawal_days'] ?? '') !== '' ? (int) $data['withdrawal_days'] : 0,
             ':clinic_name'       => $data['clinic_name']       ?? null,
-            ':cost'              => isset($data['cost']) ? (float) $data['cost'] : 0.00,
+            ':cost'              => ($data['cost'] ?? '') !== '' ? (float) $data['cost'] : 0.00,
             ':notes'             => $data['notes']             ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
@@ -175,6 +204,6 @@ class HealthModel
         $stmt = $this->pdo->prepare(
             'UPDATE treatments SET outcome = :outcome WHERE id = :id'
         );
-        return $stmt->execute([':outcome' => $outcome, ':id' => $id]);
+        return $stmt->execute([':outcome' => $this->normalizeOutcome($outcome), ':id' => $id]);
     }
 }

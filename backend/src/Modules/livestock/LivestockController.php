@@ -63,7 +63,7 @@ class LivestockController
     public function veterinarians(): void
     {
         requireAuth();
-        $farmId = (int) ($_GET['farm_id'] ?? 1);
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         respond(['success' => true, 'data' => $this->model->getVeterinarians($farmId)]);
     }
 
@@ -77,10 +77,7 @@ class LivestockController
         requireAuth();
         requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'worker', 'veterinarian']);
 
-        $farmId = (int) ($_GET['farm_id'] ?? 0);
-        if (!$farmId) {
-            respond(['success' => false, 'message' => 'farm_id query param is required.'], 422);
-        }
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
 
         respond(['success' => true, 'data' => $this->model->getAll($farmId)]);
     }
@@ -92,6 +89,7 @@ class LivestockController
         requireRole(['admin', 'farm_owner', 'farm_manager', 'veterinarian']);
 
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body['farm_id'] = resolveFarmId($body['farm_id'] ?? null);
         $required = ['farm_id', 'tag_number', 'species'];
         foreach ($required as $f) {
             if (empty($body[$f])) {
@@ -234,10 +232,11 @@ class LivestockController
     public function storeFeedRecord(int $animalId): void
     {
         $user = requireAuth();
-        requireRole(['admin', 'farm_owner', 'farm_manager', 'worker']);
+        requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'veterinarian', 'worker']);
 
         $this->getAnimalOrFail($animalId);
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $body['feed_date'] = $body['feed_date'] ?? ($body['log_date'] ?? '');
 
         if (empty($body['feed_type']) || empty($body['quantity_kg']) || empty($body['feed_date'])) {
             respond(['success' => false, 'message' => 'feed_type, quantity_kg, and feed_date are required.'], 422);

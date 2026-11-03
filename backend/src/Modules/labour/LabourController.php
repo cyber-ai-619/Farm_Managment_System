@@ -30,7 +30,7 @@ class LabourController
     public function indexWorkers(): void
     {
         requireAuth();
-        $farmId  = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId  = resolveFarmId($_GET['farm_id'] ?? null);
         $workers = $this->model->findByFarm($farmId);
         respond(['success' => true, 'count' => count($workers), 'data' => $workers]);
     }
@@ -49,6 +49,7 @@ class LabourController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['first_name']) || empty($body['last_name']) || empty($body['farm_id'])) {
             respond(['success' => false, 'message' => 'first_name, last_name, and farm_id are required.'], 422);
@@ -64,6 +65,7 @@ class LabourController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['first_name']) || empty($body['last_name'])) {
             respond(['success' => false, 'message' => 'first_name and last_name are required.'], 422);
@@ -79,6 +81,7 @@ class LabourController
     {
         $currentUser = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         $worker = $this->model->findById($workerId);
         if (!$worker) {
@@ -170,6 +173,7 @@ class LabourController
         $user = requireAuth();
         $worker = $this->getAuthenticatedWorker($user);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         $status = trim((string) ($body['status'] ?? ''));
         $notes  = isset($body['completion_notes']) ? trim((string) $body['completion_notes']) : null;
@@ -236,7 +240,7 @@ class LabourController
     public function indexAttendance(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $date   = $_GET['date'] ?? null;
 
         $attendance = $this->model->findAttendanceByFarm($farmId, $date);
@@ -247,8 +251,9 @@ class LabourController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'worker']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
-        $farmId = (int) ($body['farm_id'] ?? 1);
+        $farmId = resolveFarmId($body['farm_id'] ?? null);
         $id = $this->model->recordAttendance($workerId, $farmId, (int) $user['sub'], $body);
         $this->audit->log('labour.attendance_logged', (int) $user['sub'], 'worker_attendance', $id);
 
@@ -259,8 +264,9 @@ class LabourController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
-        $farmId  = (int) ($body['farm_id'] ?? 1);
+        $farmId  = resolveFarmId($body['farm_id'] ?? null);
         $date    = (string) ($body['work_date'] ?? date('Y-m-d'));
         $records = (array) ($body['records'] ?? []);
 
@@ -289,7 +295,7 @@ class LabourController
     public function indexTasks(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $status = $_GET['status'] ?? null;
 
         $tasks = $this->model->findTasksByFarm($farmId, $status);
@@ -300,6 +306,7 @@ class LabourController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['title']) || empty($body['farm_id'])) {
             respond(['success' => false, 'message' => 'title and farm_id are required.'], 422);
@@ -315,6 +322,7 @@ class LabourController
     {
         requireAuth();
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['status'])) {
             respond(['success' => false, 'message' => 'status is required.'], 422);
@@ -340,8 +348,9 @@ class LabourController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'accountant']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
-        $farmId    = (int) ($body['farm_id'] ?? 1);
+        $farmId    = resolveFarmId($body['farm_id'] ?? null);
         $startDate = (string) ($body['start_date'] ?? date('Y-m-01'));
         $endDate   = (string) ($body['end_date'] ?? date('Y-m-t'));
 
@@ -354,7 +363,7 @@ class LabourController
     public function indexPayroll(): void
     {
         requireRole(['admin', 'farm_owner', 'farm_manager', 'accountant']);
-        $farmId    = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId    = resolveFarmId($_GET['farm_id'] ?? null);
         $startDate = $_GET['start_date'] ?? null;
         $endDate   = $_GET['end_date'] ?? null;
 
@@ -366,6 +375,7 @@ class LabourController
     {
         $user = requireRole(['admin', 'farm_owner', 'accountant']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         $status = (string) ($body['payment_status'] ?? 'paid');
         $method = $body['payment_method'] ?? null;
@@ -386,6 +396,7 @@ class LabourController
     {
         $user = requireAuth();
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['title']) || empty($body['farm_id'])) {
             respond(['success' => false, 'message' => 'title and farm_id are required.'], 422);
@@ -404,7 +415,7 @@ class LabourController
     public function indexIncidents(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $status = $_GET['status'] ?? null;
 
         $incidents = $this->model->findIncidents($farmId, $status);
@@ -415,6 +426,7 @@ class LabourController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         $status = (string) ($body['status'] ?? 'resolved');
         $notes  = $body['resolution_notes'] ?? null;

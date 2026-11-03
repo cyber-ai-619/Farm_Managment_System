@@ -60,6 +60,31 @@ if ($requestUri === '/api/modules' && $requestMethod === 'GET') {
 
 require_once __DIR__ . '/../src/Modules/security/AuthController.php';
 
+if ($requestUri === '/api/auth/register-request' && $requestMethod === 'POST') {
+    $ctrl = new AuthController(getPdo());
+    $ctrl->requestRegistration();
+}
+
+if ($requestUri === '/api/auth/verify-registration' && $requestMethod === 'GET') {
+    $ctrl = new AuthController(getPdo());
+    $ctrl->verifyRegistrationToken();
+}
+
+if ($requestUri === '/api/auth/complete-registration' && $requestMethod === 'POST') {
+    $ctrl = new AuthController(getPdo());
+    $ctrl->completeRegistration();
+}
+
+if ($requestUri === '/api/auth/forgot-password' && $requestMethod === 'POST') {
+    $ctrl = new AuthController(getPdo());
+    $ctrl->forgotPassword();
+}
+
+if ($requestUri === '/api/auth/reset-password' && $requestMethod === 'POST') {
+    $ctrl = new AuthController(getPdo());
+    $ctrl->resetPassword();
+}
+
 if ($requestUri === '/api/auth/register' && $requestMethod === 'POST') {
     $ctrl = new AuthController(getPdo());
     $ctrl->register();

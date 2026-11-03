@@ -47,7 +47,7 @@ export const pestDiseaseService = {
   },
 
   async updateEffectiveness(treatmentId, status) {
-    const res = await api.patch(`/api/treatments/${treatmentId}/effectiveness`, { status });
+    const res = await api.patch(`/api/treatments/${treatmentId}/effectiveness`, { effectiveness: status, status });
     return res.data;
   },
 };

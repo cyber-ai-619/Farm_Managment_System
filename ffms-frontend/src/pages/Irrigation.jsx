@@ -647,14 +647,14 @@ function Irrigation() {
                   setSystemForm({
                     ...systemForm,
                     field_id: fid,
-                    coverage_area_ha: f?.area_hectares || systemForm.coverage_area_ha,
+                    coverage_area_ha: (f?.area_ha ?? f?.area_hectares) || systemForm.coverage_area_ha,
                   });
                 }}
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
                 <option value="">-- Select Field --</option>
                 {fields.map((f) => (
-                  <option key={f.id} value={f.id}>{f.name} ({f.area_hectares} ha)</option>
+                  <option key={f.id} value={f.id}>{f.name} ({f?.area_ha ?? f?.area_hectares} ha)</option>
                 ))}
               </select>
             </div>

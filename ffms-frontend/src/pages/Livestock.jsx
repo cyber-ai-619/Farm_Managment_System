@@ -37,7 +37,7 @@ function Livestock() {
     gender: "female",
     birth_date: "",
     weight_kg: "",
-    status: "healthy",
+    status: "active",
     veterinarian_name: "",
     veterinarian_phone: "",
     veterinarian_id: "",
@@ -79,7 +79,7 @@ function Livestock() {
     veterinarian_name: "",
     clinic_name: "Lusaka District Veterinary Clinic",
     withdrawal_days: 14,
-    outcome: "recovering",
+    outcome: "ongoing",
     cost: 180.0,
     notes: "Swelling reduced after initial dose. Animal isolated in observation pen.",
   });
@@ -87,6 +87,7 @@ function Livestock() {
   const [feedForm, setFeedForm] = useState({
     feed_type: "Rhodes Grass Hay & Dairy Meal",
     quantity_kg: "18",
+    feed_date: new Date().toISOString().split("T")[0],
     log_date: new Date().toISOString().split("T")[0],
   });
 
@@ -248,7 +249,7 @@ function Livestock() {
         gender: "female",
         birth_date: "",
         weight_kg: "",
-        status: "healthy",
+        status: "active",
         veterinarian_name: "",
         veterinarian_phone: "",
         veterinarian_id: "",
@@ -473,12 +474,12 @@ function Livestock() {
                           fontWeight: 700,
                           padding: "2px 8px",
                           borderRadius: "10px",
-                          backgroundColor: a.status === "healthy" ? "#E8F5E9" : a.status === "quarantine" ? "#FFF3E0" : "#FFEBEE",
-                          color: a.status === "healthy" ? "#2E7D32" : a.status === "quarantine" ? "#E65100" : "#C62828",
+                          backgroundColor: (a.status === "active" || a.status === "healthy") ? "#E8F5E9" : a.status === "quarantine" ? "#FFF3E0" : "#FFEBEE",
+                          color: (a.status === "active" || a.status === "healthy") ? "#2E7D32" : a.status === "quarantine" ? "#E65100" : "#C62828",
                           textTransform: "uppercase",
                         }}
                       >
-                        {a.status || "Healthy"}
+                        {a.status || "active"}
                       </span>
                     </div>
                     <p style={{ margin: "4px 0 0", fontSize: "0.85rem", color: "var(--color-charcoal-80)" }}>
@@ -515,12 +516,12 @@ function Livestock() {
                             fontWeight: 700,
                             padding: "3px 10px",
                             borderRadius: "12px",
-                            backgroundColor: selectedAnimal.status === "healthy" ? "#E8F5E9" : "#FFEBEE",
-                            color: selectedAnimal.status === "healthy" ? "#2E7D32" : "#C62828",
+                            backgroundColor: (selectedAnimal.status === "active" || selectedAnimal.status === "healthy") ? "#E8F5E9" : "#FFEBEE",
+                            color: (selectedAnimal.status === "active" || selectedAnimal.status === "healthy") ? "#2E7D32" : "#C62828",
                             textTransform: "uppercase",
                           }}
                         >
-                          {selectedAnimal.status || "Healthy"}
+                          {selectedAnimal.status || "active"}
                         </span>
                       </div>
                       <p style={{ margin: "6px 0 0", color: "var(--color-charcoal-60)", fontSize: "0.9rem" }}>
@@ -753,12 +754,12 @@ function Livestock() {
                                       fontWeight: 700,
                                       padding: "2px 8px",
                                       borderRadius: "8px",
-                                      backgroundColor: t.outcome === "recovered" ? "#E8F5E9" : t.outcome === "recovering" ? "#FFF3E0" : "#FFEBEE",
-                                      color: t.outcome === "recovered" ? "#2E7D32" : t.outcome === "recovering" ? "#E65100" : "#C62828",
+                                      backgroundColor: t.outcome === "recovered" ? "#E8F5E9" : (t.outcome === "ongoing" || t.outcome === "recovering") ? "#FFF3E0" : "#FFEBEE",
+                                      color: t.outcome === "recovered" ? "#2E7D32" : (t.outcome === "ongoing" || t.outcome === "recovering") ? "#E65100" : "#C62828",
                                       textTransform: "uppercase",
                                     }}
                                   >
-                                    Outcome: {t.outcome || "Ongoing"}
+                                    Outcome: {t.outcome || "ongoing"}
                                   </span>
                                 </div>
                                 <p style={{ fontSize: "0.85rem", margin: "6px 0 0", color: "var(--color-charcoal-80)" }}>
@@ -967,7 +968,7 @@ function Livestock() {
                 >
                   <option value="">-- Choose from Staff/Registered Vets --</option>
                   {veterinarians.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name} ({v.type === "staff_worker" ? "Farm Staff" : "User"})</option>
+                    <option key={`${v.type || 'vet'}-${v.id}`} value={v.id}>{v.name} ({v.type === "staff_worker" ? "Farm Staff" : "User"})</option>
                   ))}
                 </select>
               </div>
@@ -1064,7 +1065,7 @@ function Livestock() {
             >
               <option value="">-- Or enter external clinician below --</option>
               {veterinarians.map((v) => (
-                <option key={v.id} value={v.id}>{v.name} ({v.type === "staff_worker" ? "Farm Staff" : "User"})</option>
+                <option key={`${v.type || 'vet'}-${v.id}`} value={v.id}>{v.name} ({v.type === "staff_worker" ? "Farm Staff" : "User"})</option>
               ))}
             </select>
           </div>
@@ -1204,7 +1205,7 @@ function Livestock() {
               >
                 <option value="">-- Choose Veterinarian / Staff --</option>
                 {veterinarians.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name} ({v.type === "staff_worker" ? "Farm Staff" : "User"})</option>
+                  <option key={`${v.type || 'vet'}-${v.id}`} value={v.id}>{v.name} ({v.type === "staff_worker" ? "Farm Staff" : "User"})</option>
                 ))}
               </select>
             </div>
@@ -1356,9 +1357,8 @@ function Livestock() {
                 onChange={(e) => setTreatmentForm({ ...treatmentForm, outcome: e.target.value })}
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid rgba(30,70,50,0.2)" }}
               >
-                <option value="recovering">Recovering</option>
+                <option value="ongoing">Ongoing / Recovering</option>
                 <option value="recovered">Recovered</option>
-                <option value="ongoing">Ongoing Treatment</option>
                 <option value="referred">Referred to Specialist</option>
                 <option value="deceased">Deceased</option>
               </select>
@@ -1383,7 +1383,7 @@ function Livestock() {
               >
                 <option value="">-- Choose Veterinarian --</option>
                 {veterinarians.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name} ({v.type === "staff_worker" ? "Farm Staff" : "User"})</option>
+                  <option key={`${v.type || 'vet'}-${v.id}`} value={v.id}>{v.name} ({v.type === "staff_worker" ? "Farm Staff" : "User"})</option>
                 ))}
               </select>
             </div>
@@ -1461,8 +1461,8 @@ function Livestock() {
               <label>Date</label>
               <input
                 type="date"
-                value={feedForm.log_date}
-                onChange={(e) => setFeedForm({ ...feedForm, log_date: e.target.value })}
+                value={feedForm.feed_date || feedForm.log_date}
+                onChange={(e) => setFeedForm({ ...feedForm, feed_date: e.target.value, log_date: e.target.value })}
               />
             </div>
           </div>

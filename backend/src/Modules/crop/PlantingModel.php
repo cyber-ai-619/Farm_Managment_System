@@ -74,6 +74,12 @@ class PlantingModel
 
     public function create(array $data): int
     {
+        $status = strtolower(trim((string) ($data['status'] ?? 'planned')));
+        $allowedStatus = ['planned', 'planted', 'growing', 'harvested', 'failed'];
+        if (!in_array($status, $allowedStatus, true)) {
+            $status = 'planned';
+        }
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO planting_schedules
                 (field_id, plot_id, crop_id, variety_id, planted_by,
@@ -85,16 +91,16 @@ class PlantingModel
                  :seed_quantity_kg, :status, :notes)'
         );
         $stmt->execute([
-            ':field_id'             => $data['field_id'],
-            ':plot_id'              => $data['plot_id']               ?? null,
-            ':crop_id'              => $data['crop_id'],
-            ':variety_id'           => $data['variety_id']            ?? null,
-            ':planted_by'           => $data['planted_by'],
+            ':field_id'             => (int) $data['field_id'],
+            ':plot_id'              => ($data['plot_id'] ?? '') !== '' ? (int) $data['plot_id'] : null,
+            ':crop_id'              => (int) $data['crop_id'],
+            ':variety_id'           => ($data['variety_id'] ?? '') !== '' ? (int) $data['variety_id'] : null,
+            ':planted_by'           => (int) $data['planted_by'],
             ':planting_date'        => $data['planting_date'],
-            ':expected_harvest_date'=> $data['expected_harvest_date'] ?? null,
-            ':area_planted_ha'      => $data['area_planted_ha']       ?? null,
-            ':seed_quantity_kg'     => $data['seed_quantity_kg']      ?? null,
-            ':status'               => $data['status']                ?? 'planned',
+            ':expected_harvest_date'=> ($data['expected_harvest_date'] ?? '') !== '' ? $data['expected_harvest_date'] : null,
+            ':area_planted_ha'      => ($data['area_planted_ha'] ?? '') !== '' ? (float) $data['area_planted_ha'] : null,
+            ':seed_quantity_kg'     => ($data['seed_quantity_kg'] ?? '') !== '' ? (float) $data['seed_quantity_kg'] : null,
+            ':status'               => $status,
             ':notes'                => $data['notes']                 ?? null,
         ]);
         return (int) $this->pdo->lastInsertId();
@@ -115,7 +121,7 @@ class PlantingModel
     public function getFertilizersByPlanting(int $plantingId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT fr.*, u.name AS applied_by_name
+            'SELECT fr.*, u.name AS applied_by_name, COALESCE(fr.notes, fr.fertilizer_type) AS application_method
              FROM fertilizer_records fr
              JOIN users u ON u.id = fr.applied_by
              WHERE fr.planting_id = :planting_id
@@ -128,7 +134,7 @@ class PlantingModel
     public function getFertilizersByCrop(int $cropId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT fr.*, u.name AS applied_by_name
+            'SELECT fr.*, u.name AS applied_by_name, COALESCE(fr.notes, fr.fertilizer_type) AS application_method
              FROM fertilizer_records fr
              JOIN planting_schedules p ON p.id = fr.planting_id
              JOIN users u ON u.id = fr.applied_by
@@ -141,6 +147,12 @@ class PlantingModel
 
     public function createFertilizerRecord(array $data): int
     {
+        $fertType = strtolower(trim((string) ($data['fertilizer_type'] ?? 'other')));
+        $allowedTypes = ['organic', 'inorganic', 'foliar', 'basal', 'top_dress', 'other'];
+        if (!in_array($fertType, $allowedTypes, true)) {
+            $fertType = 'other';
+        }
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO fertilizer_records
                 (planting_id, applied_by, fertilizer_name, fertilizer_type,
@@ -150,13 +162,13 @@ class PlantingModel
                  :quantity_kg, :application_date, :notes)'
         );
         $stmt->execute([
-            ':planting_id'     => $data['planting_id'],
-            ':applied_by'      => $data['applied_by'],
+            ':planting_id'     => (int) $data['planting_id'],
+            ':applied_by'      => (int) $data['applied_by'],
             ':fertilizer_name' => $data['fertilizer_name'],
-            ':fertilizer_type' => $data['fertilizer_type'] ?? 'other',
-            ':quantity_kg'     => $data['quantity_kg'],
+            ':fertilizer_type' => $fertType,
+            ':quantity_kg'     => (float) $data['quantity_kg'],
             ':application_date'=> $data['application_date'],
-            ':notes'           => $data['notes'] ?? null,
+            ':notes'           => $data['notes'] ?? ($data['application_method'] ?? null),
         ]);
         return (int) $this->pdo->lastInsertId();
     }

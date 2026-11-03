@@ -13,12 +13,14 @@ require_once __DIR__ . '/../security/AuditLogger.php';
  */
 class PestDiseaseController
 {
+    private PDO            $pdo;
     private PestModel      $pestModel;
     private TreatmentModel $treatmentModel;
     private AuditLogger    $audit;
 
     public function __construct(PDO $pdo)
     {
+        $this->pdo            = $pdo;
         $this->pestModel      = new PestModel($pdo);
         $this->treatmentModel = new TreatmentModel($pdo);
         $this->audit          = new AuditLogger($pdo);
@@ -35,6 +37,7 @@ class PestDiseaseController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['name'])) {
             respond(['success' => false, 'message' => 'name is required.'], 422);
@@ -49,7 +52,7 @@ class PestDiseaseController
     public function indexScouting(): void
     {
         requireAuth();
-        $farmId  = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId  = resolveFarmId($_GET['farm_id'] ?? null);
         $fieldId = isset($_GET['field_id']) ? (int) $_GET['field_id'] : null;
 
         $records = $this->pestModel->findScoutingRecords($farmId, $fieldId);
@@ -60,6 +63,14 @@ class PestDiseaseController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist', 'worker']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
+
+        if (empty($body['farm_id']) && !empty($body['field_id'])) {
+            $stmt = $this->pdo->prepare('SELECT farm_id FROM fields WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => (int) $body['field_id']]);
+            $foundFarmId = $stmt->fetchColumn();
+            $body['farm_id'] = $foundFarmId ? (int) $foundFarmId : resolveFarmId();
+        }
 
         if (empty($body['farm_id']) || empty($body['field_id'])) {
             respond(['success' => false, 'message' => 'farm_id and field_id are required.'], 422);
@@ -82,6 +93,7 @@ class PestDiseaseController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['chemical_product']) || empty($body['dosage_rate'])) {
             respond(['success' => false, 'message' => 'chemical_product and dosage_rate are required.'], 422);
@@ -97,12 +109,14 @@ class PestDiseaseController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager', 'agronomist']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
+        $effectiveness = $body['effectiveness'] ?? ($body['status'] ?? '');
 
-        if (empty($body['effectiveness'])) {
+        if (empty($effectiveness)) {
             respond(['success' => false, 'message' => 'effectiveness rating is required.'], 422);
         }
 
-        $this->treatmentModel->updateEffectiveness($id, (string) $body['effectiveness'], $body['notes'] ?? null);
+        $this->treatmentModel->updateEffectiveness($id, (string) $effectiveness, $body['notes'] ?? null);
         $this->audit->log('pest.treatment_effectiveness_evaluated', (int) $user['sub'], 'pest_treatments', $id);
 
         respond(['success' => true, 'message' => 'Treatment effectiveness recorded.']);
@@ -111,7 +125,7 @@ class PestDiseaseController
     public function outbreaks(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $records = $this->pestModel->findScoutingRecords($farmId);
 
         // Filter severe or critical observations

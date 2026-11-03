@@ -163,7 +163,12 @@ function Login() {
           </div>
 
           <div className="form-field">
-            <label htmlFor="login-password">Password</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+              <label htmlFor="login-password" style={{ margin: 0 }}>Password</label>
+              <Link to="/forgot-password" style={{ fontSize: "0.84rem", color: "#166534", fontWeight: 600, textDecoration: "none" }}>
+                Forgot password?
+              </Link>
+            </div>
             <div className="password-field">
               <input
                 id="login-password"

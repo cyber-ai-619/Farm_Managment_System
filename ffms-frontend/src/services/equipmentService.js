@@ -11,8 +11,9 @@ import api from "./api";
  *   GET/POST       /api/equipment/{id}/fuel-log
  */
 export const equipmentService = {
-  async getEquipment() {
-    const res = await api.get("/api/equipment");
+  async getEquipment(farmId) {
+    const query = farmId ? `?farm_id=${farmId}` : "";
+    const res = await api.get(`/api/equipment${query}`);
     return res.data || [];
   },
 

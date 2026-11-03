@@ -39,6 +39,10 @@ class WeatherModel
 
     public function logObservation(int $farmId, ?int $userId, array $data): int
     {
+        $rawSource = strtolower(trim((string) ($data['source'] ?? 'manual')));
+        $validSources = ['manual', 'sensor', 'open_meteo_api', 'station'];
+        $source = in_array($rawSource, $validSources, true) ? $rawSource : 'manual';
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO weather_observations (farm_id, recorded_by, temperature_c, humidity_pct, rainfall_mm, wind_speed_kmh, wind_direction, solar_radiation_wm2, soil_temperature_c, soil_moisture_pct, condition_summary, source, observed_at)
              VALUES (:farm_id, :recorded_by, :temp, :humidity, :rain, :wind_spd, :wind_dir, :solar, :soil_temp, :soil_moisture, :condition, :source, :observed_at)'
@@ -46,17 +50,17 @@ class WeatherModel
         $stmt->execute([
             ':farm_id'       => $farmId,
             ':recorded_by'   => $userId,
-            ':temp'          => $data['temperature_c'],
-            ':humidity'      => $data['humidity_pct'] ?? null,
-            ':rain'          => $data['rainfall_mm'] ?? 0.00,
-            ':wind_spd'      => $data['wind_speed_kmh'] ?? null,
-            ':wind_dir'      => $data['wind_direction'] ?? null,
-            ':solar'         => $data['solar_radiation_wm2'] ?? null,
-            ':soil_temp'     => $data['soil_temperature_c'] ?? null,
-            ':soil_moisture' => $data['soil_moisture_pct'] ?? null,
-            ':condition'     => $data['condition_summary'] ?? null,
-            ':source'        => $data['source'] ?? 'manual',
-            ':observed_at'   => $data['observed_at'] ?? date('Y-m-d H:i:s'),
+            ':temp'          => (float) $data['temperature_c'],
+            ':humidity'      => ($data['humidity_pct'] ?? '') !== '' ? (float) $data['humidity_pct'] : null,
+            ':rain'          => ($data['rainfall_mm'] ?? '') !== '' ? (float) $data['rainfall_mm'] : 0.00,
+            ':wind_spd'      => ($data['wind_speed_kmh'] ?? '') !== '' ? (float) $data['wind_speed_kmh'] : null,
+            ':wind_dir'      => !empty($data['wind_direction']) ? $data['wind_direction'] : null,
+            ':solar'         => ($data['solar_radiation_wm2'] ?? '') !== '' ? (float) $data['solar_radiation_wm2'] : null,
+            ':soil_temp'     => ($data['soil_temperature_c'] ?? '') !== '' ? (float) $data['soil_temperature_c'] : null,
+            ':soil_moisture' => ($data['soil_moisture_pct'] ?? '') !== '' ? (float) $data['soil_moisture_pct'] : null,
+            ':condition'     => !empty($data['condition_summary']) ? $data['condition_summary'] : null,
+            ':source'        => $source,
+            ':observed_at'   => !empty($data['observed_at']) ? $data['observed_at'] : date('Y-m-d H:i:s'),
         ]);
         return (int) $this->pdo->lastInsertId();
     }

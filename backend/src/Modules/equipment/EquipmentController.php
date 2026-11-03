@@ -24,7 +24,7 @@ class EquipmentController
     public function index(): void
     {
         requireAuth();
-        $farmId = isset($_GET['farm_id']) ? (int) $_GET['farm_id'] : 1;
+        $farmId = resolveFarmId($_GET['farm_id'] ?? null);
         $items  = $this->model->findByFarm($farmId);
         respond(['success' => true, 'count' => count($items), 'data' => $items]);
     }
@@ -53,6 +53,7 @@ class EquipmentController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['name']) || empty($body['farm_id'])) {
             respond(['success' => false, 'message' => 'name and farm_id are required.'], 422);
@@ -68,6 +69,7 @@ class EquipmentController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['name'])) {
             respond(['success' => false, 'message' => 'name is required.'], 422);
@@ -99,6 +101,7 @@ class EquipmentController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
 
         if (empty($body['service_type'])) {
             respond(['success' => false, 'message' => 'service_type is required.'], 422);
@@ -121,6 +124,8 @@ class EquipmentController
     {
         $user = requireRole(['admin', 'farm_owner', 'farm_manager']);
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
+        $body['description'] = $body['description'] ?? ($body['repair_description'] ?? '');
 
         if (empty($body['description'])) {
             respond(['success' => false, 'message' => 'description is required.'], 422);
@@ -143,6 +148,8 @@ class EquipmentController
     {
         $user = requireAuth();
         $body = $this->jsonBody();
+        if (empty($body['farm_id'])) { $body['farm_id'] = resolveFarmId(); } else { $body['farm_id'] = resolveFarmId($body['farm_id']); }
+        $body['litres_added'] = $body['litres_added'] ?? ($body['liters'] ?? '');
 
         if (empty($body['litres_added'])) {
             respond(['success' => false, 'message' => 'litres_added is required.'], 422);
